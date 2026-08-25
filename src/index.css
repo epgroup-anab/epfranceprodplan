@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body, #root { height: 100%; }
+body { background: #f1f5f9; -webkit-font-smoothing: antialiased; }
+
+/* Keep the planning grid readable when it scrolls sideways. */
+.sticky-col { position: sticky; left: 0; z-index: 10; }
