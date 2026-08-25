@@ -1,6 +1,7 @@
 import {
   bagsPerShift, shiftsPerWeek, weekSlots, weekStartOf, addWeeks, addDays, DAY_NAMES,
 } from './capacity.js';
+import { prioritySignature } from '../lib/priority.js';
 
 /**
  * SKUs that are contractually tied to one machine. Carrefour France always
@@ -182,9 +183,12 @@ export function generatePlan(orders, machines, options = {}) {
   const ranked = rankOrders(planable);
   const active = machines.filter((m) => m.status === 'active');
 
+  const signature = prioritySignature(orders);
+
   if (!active.length) throw new Error('No active machines — nothing can be scheduled.');
   if (!ranked.length) {
-    return { slots: [], weeks: 0, startWeek, metrics: emptyMetrics(), unplaced: [], overflow: [], orderStatus: [] };
+    return { slots: [], weeks: 0, startWeek, metrics: emptyMetrics(), unplaced: [], overflow: [],
+      orderStatus: [], prioritySignature: signature, editCount: 0 };
   }
 
   // Widen the horizon until the whole book fits.
@@ -282,6 +286,67 @@ export function generatePlan(orders, machines, options = {}) {
     slots, weeks, startWeek, horizon,
     unplaced: result.unplaced, overflow: result.overflow, orderStatus,
     dataWarnings: validateOrders(planable, active),
+    metrics: buildMetrics(slots, active, weeks, changeovers, widthChanges, colourChanges),
+    prioritySignature: signature,
+    generatedAt: new Date().toISOString(),
+    editCount: 0,
+  };
+}
+
+/**
+ * Rebuild everything that is derived from `slots` — headline numbers,
+ * utilisation, and the completion table. Called after a manual grid edit so
+ * what the planner sees always matches what is actually on the grid.
+ */
+export function recomputePlan(plan, machines, orders = []) {
+  const active = machines.filter((m) => m.status === 'active');
+  const slots = plan.slots || [];
+  const weeks = slots.reduce((max, s) => Math.max(max, s.week + 1), 0);
+
+  const changeoverSlots = slots.filter((s) => s.type === 'changeover');
+  const changeovers = Math.round(changeoverSlots.length / CHANGEOVER_SHIFTS);
+  const widthChanges = changeoverSlots.filter((s) => s.width_change).length;
+  const colourChanges = changeoverSlots.filter((s) => s.colour_change && !s.width_change).length;
+
+  const scheduled = {};
+  for (const s of slots) {
+    if (s.type !== 'production' || !s.sap_code) continue;
+    scheduled[s.sap_code] = (scheduled[s.sap_code] || 0) + s.bags;
+  }
+
+  // Live orders win, because a priority override should show up here straight
+  // away. Anything only present on the old plan or only on the grid is kept so
+  // no line silently disappears from the completion table.
+  const lines = new Map();
+  for (const row of plan.orderStatus || []) {
+    lines.set(row.sap_code, { sap_code: row.sap_code, description: row.description,
+      priority: row.priority, required: row.required });
+  }
+  for (const o of orders) {
+    if (o.net_bags_required <= 0 && !scheduled[o.sap_code]) continue;
+    lines.set(o.sap_code, { sap_code: o.sap_code, description: o.description,
+      priority: o.priority, required: o.net_bags_required });
+  }
+  for (const sap of Object.keys(scheduled)) {
+    if (!lines.has(sap)) {
+      const s = slots.find((x) => x.sap_code === sap);
+      lines.set(sap, { sap_code: sap, description: s?.description || `SAP ${sap}`,
+        priority: s?.priority ?? 3, required: 0 });
+    }
+  }
+
+  const orderStatus = [...lines.values()].map((line) => {
+    const done = Math.round(scheduled[line.sap_code] || 0);
+    return {
+      ...line, scheduled: done,
+      shortfall: Math.max(0, line.required - done),
+      complete: done >= line.required - 1,
+      machines: [...new Set(slots.filter((s) => s.sap_code === line.sap_code).map((s) => s.machine_id))],
+    };
+  }).sort((a, b) => (a.priority - b.priority) || (b.required - a.required));
+
+  return {
+    ...plan, slots, weeks, orderStatus,
     metrics: buildMetrics(slots, active, weeks, changeovers, widthChanges, colourChanges),
   };
 }

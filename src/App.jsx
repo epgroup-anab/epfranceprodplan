@@ -1,12 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Upload, ClipboardList, Package, Settings, BarChart3, HardDrive } from 'lucide-react';
+import { Upload, ClipboardList, Package, Settings, BarChart3, HardDrive, HelpCircle } from 'lucide-react';
 import ImportTab from './components/ImportTab.jsx';
 import OrdersTab from './components/OrdersTab.jsx';
 import StockTab from './components/StockTab.jsx';
 import MachinesTab from './components/MachinesTab.jsx';
 import PlanningTab from './components/PlanningTab.jsx';
+import FaqTab from './components/FaqTab.jsx';
 import { MACHINES } from './data/machines.js';
 import { load, save, clear, clearAll, isEphemeral } from './lib/storage.js';
+import { normalisePriority } from './lib/priority.js';
 import { fmt } from './components/ui.jsx';
 
 const TABS = [
@@ -15,6 +17,7 @@ const TABS = [
   { id: 'stock',    label: 'Stock',    icon: Package },
   { id: 'machines', label: 'Machines', icon: Settings },
   { id: 'planning', label: 'Planning', icon: BarChart3 },
+  { id: 'faq',      label: 'FAQ',      icon: HelpCircle },
 ];
 
 export default function App() {
@@ -47,6 +50,28 @@ export default function App() {
 
   const handlePlan = (result) => { setPlan(result); save('plan', result); };
   const handleClearPlan = () => { setPlan(null); clear('plan'); };
+
+  /**
+   * A priority typed on the sheet is a starting point, not a fact. The value
+   * from the file is kept alongside the override so it can always be restored.
+   */
+  const handlePriority = (sapCode, priority) => {
+    const next = orders.map((o) => {
+      if (String(o.sap_code) !== String(sapCode)) return o;
+      const original = o.priority_original ?? o.priority;
+      const level = normalisePriority(priority);
+      return level === original
+        ? { ...o, priority: original, priority_original: original, priority_source: 'sheet' }
+        : { ...o, priority: level, priority_original: original, priority_source: 'manual' };
+    });
+    setOrders(next); save('orders', next);
+  };
+
+  const handleResetPriorities = () => {
+    const next = orders.map((o) => (o.priority_original == null ? o
+      : { ...o, priority: o.priority_original, priority_source: 'sheet' }));
+    setOrders(next); save('orders', next);
+  };
 
   const handleClearAll = () => {
     clearAll();
@@ -94,13 +119,17 @@ export default function App() {
           <ImportTab orders={orders} materials={materials}
             onOrders={handleOrders} onMaterials={handleMaterials} onClear={handleClearAll} />
         )}
-        {tab === 'orders'   && <OrdersTab orders={orders} sourceName={sources.orders} />}
+        {tab === 'orders'   && (
+          <OrdersTab orders={orders} sourceName={sources.orders}
+            onPriority={handlePriority} onResetPriorities={handleResetPriorities} />
+        )}
         {tab === 'stock'    && <StockTab materials={materials} sourceName={sources.materials} />}
         {tab === 'machines' && <MachinesTab machines={MACHINES} />}
         {tab === 'planning' && (
           <PlanningTab orders={orders} machines={MACHINES} plan={plan}
             onPlan={handlePlan} onClear={handleClearPlan} />
         )}
+        {tab === 'faq'      && <FaqTab machines={MACHINES} orders={orders} />}
       </main>
     </div>
   );

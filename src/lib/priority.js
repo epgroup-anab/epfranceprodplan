@@ -34,6 +34,19 @@ export function normalisePriority(input) {
   return legacy[String(input).toUpperCase().trim()] ?? 3;
 }
 
+/**
+ * A short fingerprint of the priorities currently on the order book. The plan
+ * stores the fingerprint it was built from, so the Planning tab can tell the
+ * planner when an override has made the plan on screen out of date.
+ */
+export function prioritySignature(orders = []) {
+  let h = 2166136261;
+  for (const o of [...orders].sort((a, b) => String(a.sap_code).localeCompare(String(b.sap_code)))) {
+    for (const c of `${o.sap_code}:${o.priority};`) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  }
+  return (h >>> 0).toString(36);
+}
+
 export const priorityMeta = (v) => BY_VALUE.get(normalisePriority(v)) ?? BY_VALUE.get(3);
 export const priorityName = (v) => priorityMeta(v).name;
 export const priorityBadge = (v) => priorityMeta(v).badge;

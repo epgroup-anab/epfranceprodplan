@@ -1,13 +1,14 @@
 import React, { useMemo, useState } from 'react';
-import { Search, ClipboardList, ArrowUpDown } from 'lucide-react';
-import { Card, Empty, TableWrap, Th, Td, PriorityBadge, fmt } from './ui.jsx';
+import { Search, ClipboardList, ArrowUpDown, RotateCcw } from 'lucide-react';
+import { Card, Empty, TableWrap, Th, Td, Button, Notice, fmt } from './ui.jsx';
+import { PRIORITY_LEVELS, priorityMeta } from '../lib/priority.js';
 
 const coverTone = (c) =>
   c < 1 ? 'text-red-600 font-semibold'
   : c < 2 ? 'text-amber-600 font-medium'
   : 'text-slate-600';
 
-export default function OrdersTab({ orders, sourceName }) {
+export default function OrdersTab({ orders, sourceName, onPriority, onResetPriorities }) {
   const [query, setQuery] = useState('');
   const [priority, setPriority] = useState('all');
   const [sort, setSort] = useState({ key: 'priority', dir: 1 });
@@ -44,6 +45,7 @@ export default function OrdersTab({ orders, sourceName }) {
   const totalBags = orders.reduce((a, o) => a + o.total_bags_required, 0);
   const netBags = orders.reduce((a, o) => a + o.net_bags_required, 0);
   const critical = orders.filter((o) => o.cover_weeks < 1).length;
+  const overridden = orders.filter((o) => o.priority_source === 'manual');
 
   return (
     <Card
@@ -51,6 +53,11 @@ export default function OrdersTab({ orders, sourceName }) {
       subtitle={`${sourceName ? `From ${sourceName}. ` : ''}${fmt(totalBags)} bags demanded, ${fmt(netBags)} still to make after stock on hand.${critical ? ` ${critical} below one week of cover.` : ''}`}
       right={
         <div className="flex items-center gap-2">
+          {overridden.length > 0 && (
+            <Button variant="ghost" onClick={onResetPriorities} title="Put every priority back to the value on the uploaded sheet">
+              <RotateCcw className="w-4 h-4" />Reset {overridden.length}
+            </Button>
+          )}
           <div className="relative">
             <Search className="w-4 h-4 absolute left-2.5 top-2.5 text-slate-400" />
             <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="SAP code or name"
@@ -64,6 +71,16 @@ export default function OrdersTab({ orders, sourceName }) {
         </div>
       }
     >
+      {overridden.length > 0 && (
+        <div className="px-5 pt-4">
+          <Notice tone="info">
+            {overridden.length} priorit{overridden.length === 1 ? 'y has' : 'ies have'} been changed by hand
+            ({overridden.map((o) => o.sap_code).join(', ')}). Go to the Planning tab and press Re-plan
+            for the schedule to follow the new order.
+          </Notice>
+        </div>
+      )}
+
       <TableWrap>
         <thead className="bg-slate-50">
           <tr>
@@ -83,7 +100,9 @@ export default function OrdersTab({ orders, sourceName }) {
           {rows.map((o) => (
             <tr key={o.sap_code} className="hover:bg-slate-50">
               <Td className="font-mono text-xs">{o.sap_code}</Td>
-              <Td><PriorityBadge value={o.priority} /></Td>
+              <Td>
+                <PriorityCell order={o} onChange={(p) => onPriority(o.sap_code, p)} />
+              </Td>
               <Td className="max-w-[22rem] truncate" title={o.description}>{o.description}</Td>
               <Td className="text-xs text-slate-500">
                 {o.compatible_machines.length
@@ -104,5 +123,35 @@ export default function OrdersTab({ orders, sourceName }) {
       </TableWrap>
       {!rows.length && <p className="text-center text-sm text-slate-500 py-8">Nothing matches that filter.</p>}
     </Card>
+  );
+}
+
+/**
+ * Priority straight from the sheet, unless someone knows better. Changing it
+ * here is what re-orders the queue on the next plan, so it stays visible in the
+ * table rather than hidden behind a dialog.
+ */
+function PriorityCell({ order, onChange }) {
+  const manual = order.priority_source === 'manual';
+  const meta = priorityMeta(order.priority);
+  return (
+    <div className="flex items-center gap-1.5">
+      <select
+        value={order.priority}
+        onChange={(e) => onChange(Number(e.target.value))}
+        title={`${meta.value} — ${meta.name}: ${meta.blurb}\nChange this to move the order up or down the queue.`}
+        className={`appearance-none cursor-pointer rounded pl-2 pr-2 py-0.5 text-xs font-semibold border-0 focus:outline-none focus:ring-2 focus:ring-blue-400 ${meta.badge}`}
+      >
+        {PRIORITY_LEVELS.map((p) => (
+          <option key={p.value} value={p.value} className="bg-white text-slate-800">{p.value} {p.name}</option>
+        ))}
+      </select>
+      {manual && (
+        <span className="text-[10px] font-medium text-blue-600"
+              title={`The sheet said ${order.priority_original}. Changed by hand.`}>
+          edited
+        </span>
+      )}
+    </div>
   );
 }

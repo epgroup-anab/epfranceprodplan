@@ -1,5 +1,6 @@
 // 8 production machines. Live configuration as of Aug 2026.
 // capacity_per_shift is nominal; effective output = capacity_per_shift * efficiency.
+// All machines run three shifts Monday to Friday.
 
 export const MACHINES = [
   {
@@ -14,7 +15,7 @@ export const MACHINES = [
     "handle_type": "FLAT",
     "double_layer_capable": false,
     "shifts_mon_thu": 3,
-    "shifts_fri": 2,
+    "shifts_fri": 3,
     "status": "active",
     "notes": "Primarily dedicated to CF FR 35627. Upgraded to 2-colour print 28-01-2026."
   },
@@ -30,7 +31,7 @@ export const MACHINES = [
     "handle_type": "FLAT",
     "double_layer_capable": false,
     "shifts_mon_thu": 3,
-    "shifts_fri": 2,
+    "shifts_fri": 3,
     "status": "active",
     "notes": "Versatile machine — Sushi Shop, VIVAL, SPAR, Mandarine, System-U, LAD"
   },
@@ -46,7 +47,7 @@ export const MACHINES = [
     "handle_type": "FLAT",
     "double_layer_capable": false,
     "shifts_mon_thu": 3,
-    "shifts_fri": 2,
+    "shifts_fri": 3,
     "status": "active",
     "notes": "Often runs Monoprix ALI, SPAR, Casino products. Upgraded to 4-colour print 29-01-2026."
   },
@@ -62,7 +63,7 @@ export const MACHINES = [
     "handle_type": "FLAT",
     "double_layer_capable": false,
     "shifts_mon_thu": 3,
-    "shifts_fri": 2,
+    "shifts_fri": 3,
     "status": "active",
     "notes": "Runs BON SENS, NETTO, MORRISONS, System-U Drive"
   },
@@ -78,7 +79,7 @@ export const MACHINES = [
     "handle_type": "FLAT",
     "double_layer_capable": true,
     "shifts_mon_thu": 3,
-    "shifts_fri": 2,
+    "shifts_fri": 3,
     "status": "active",
     "notes": "ONLY machine for 4-color prints and double layer bags"
   },
@@ -94,7 +95,7 @@ export const MACHINES = [
     "handle_type": "TWISTED",
     "double_layer_capable": false,
     "shifts_mon_thu": 3,
-    "shifts_fri": 2,
+    "shifts_fri": 3,
     "status": "active",
     "notes": "ONLY machine for Twisted Handle products. Also capable of square bottom without handles."
   },
