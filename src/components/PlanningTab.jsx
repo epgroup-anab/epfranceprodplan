@@ -263,7 +263,7 @@ function Utilisation({ metrics }) {
       <div className="p-5 pt-4 space-y-2.5">
         {metrics.utilisation.map((u) => (
           <div key={u.machine_id} className="flex items-center gap-3">
-            <span className="w-16 text-xs font-medium text-slate-700">{u.machine_id}</span>
+            <span className="w-20 text-xs font-medium text-slate-700">{u.machine_id}</span>
             <div className="flex-1 h-5 bg-slate-100 rounded overflow-hidden flex">
               <div className={`h-full ${u.percent >= 95 ? 'bg-red-500' : u.percent >= 70 ? 'bg-emerald-500' : 'bg-blue-400'}`}
                    style={{ width: `${Math.min(100, u.percent)}%` }} />

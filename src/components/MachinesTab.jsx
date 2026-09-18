@@ -1,8 +1,14 @@
 import React from 'react';
-import { Zap, Palette, Clock, Layers, Gauge } from 'lucide-react';
+import { Zap, Palette, Clock, Layers, Gauge, Lock } from 'lucide-react';
 import { Card, fmt } from './ui.jsx';
 import { bagsPerShift, shiftsPerWeek, weeklyCapacity } from '../engine/capacity.js';
 import { PINNED_MACHINES } from '../engine/scheduler.js';
+
+function handleTone(type) {
+  if (type === 'TWISTED') return 'bg-amber-100 text-amber-700';
+  if (type === 'SQR BOTTOM') return 'bg-teal-100 text-teal-800';
+  return 'bg-blue-100 text-blue-700';
+}
 
 export default function MachinesTab({ machines }) {
   const total = machines.reduce((a, m) => a + weeklyCapacity(m), 0);
@@ -27,7 +33,7 @@ export default function MachinesTab({ machines }) {
 
             <div className="px-4 py-3 space-y-3">
               <div className="flex gap-1.5 flex-wrap">
-                <span className={`px-2 py-0.5 rounded text-xs font-medium ${m.handle_type === 'TWISTED' ? 'bg-amber-100 text-amber-700' : 'bg-blue-100 text-blue-700'}`}>{m.handle_type}</span>
+                <span className={`px-2 py-0.5 rounded text-xs font-medium ${handleTone(m.handle_type)}`}>{m.handle_type}</span>
                 <span className="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-600">{m.category}</span>
               </div>
 
@@ -44,6 +50,13 @@ export default function MachinesTab({ machines }) {
                 <span className="text-slate-400"> across {shiftsPerWeek(m)} shifts</span>
               </div>
 
+              {m.fixed_size && (
+                <div className="flex items-center gap-1.5 text-xs font-medium text-teal-800 bg-teal-50 px-2 py-1 rounded-lg">
+                  <Lock className="w-3.5 h-3.5" />
+                  Fixed {m.bag_width_cm}×{m.bag_gusset_cm}×{m.bag_height_cm} cm
+                  {m.roll_width_mm ? ` · ${m.roll_width_mm}mm roll` : ''}
+                </div>
+              )}
               {m.double_layer_capable && (
                 <div className="flex items-center gap-1.5 text-xs font-medium text-purple-700 bg-purple-50 px-2 py-1 rounded-lg">
                   <Layers className="w-3.5 h-3.5" />Double layer capable

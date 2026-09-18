@@ -38,7 +38,7 @@ export default function FaqTab({ machines, orders }) {
         <div className="px-5 pb-5 space-y-2.5">
           <Section id="what" open={open} toggle={toggle} title="What the tool actually does">
             <P>
-              You give it two files and it gives you a shift-by-shift schedule for all eight
+              You give it two files and it gives you a shift-by-shift schedule for all ten
               machines, running as many weeks forward as it takes to make every bag on the order sheet.
             </P>
             <List items={[
@@ -157,7 +157,7 @@ export default function FaqTab({ machines, orders }) {
           <Section id="compat" open={open} toggle={toggle} title="Machine compatibility, and why it matters">
             <P>
               A paper bag is not machine-agnostic. Handle type, print colours and bag construction all
-              decide which of the eight machines can physically make it. Compatibility is what turns a
+              decide which of the ten machines can physically make it. Compatibility is what turns a
               list of orders into a plan that the factory can actually run.
             </P>
             <List items={[
@@ -174,14 +174,18 @@ export default function FaqTab({ machines, orders }) {
                 demand is larger than that machine can make, the excess spills onto the SKU&apos;s other
                 compatible machines and the plan says so in the notices, rather than silently dropping
                 the bags or running the order past the end of the horizon.</>,
-              <><B>Handle type.</B> Twisted handle and flat handle are different machines, not a setting.
-                MC-6 is the only twisted-handle line in the plant.</>,
+              <><B>Handle type.</B> Twisted handle, flat handle and square-bottom (no handle) are different
+                machines, not a setting. MC-6 is the only twisted-handle line. MC-SH-B and MC-SH-C are the
+                square-bottom lines, installed May 2026.</>,
               <><B>Print colours.</B> Each machine has a ceiling. MC-4 prints 1 colour, MC-1 and MC-6 print 2,
-                MC-2 prints 3, and MC-3 and MC-5 print 4. A 4-colour job cannot run on a 2-colour machine
+                MC-2 prints 3, and MC-3, MC-5, MC-SH-B and MC-SH-C print 4. A 4-colour job cannot run on a 2-colour machine
                 whatever the schedule says.</>,
               <><B>Double layer.</B> MC-5 is the only line that can make double-walled bags.</>,
-              <><B>Roll width.</B> Not a compatibility limit — any machine takes any width — but it drives
-                changeovers, which is why the running order groups widths together.</>,
+              <><B>Roll width.</B> On the handle lines this is not a compatibility limit — those machines take
+                any width — but it drives changeovers, which is why the running order groups widths together.
+                MC-SH-B and MC-SH-C are the exception: they are fixed-size SOS machines and cannot change bag
+                size or roll width. SH-B is locked at 18×12×29&nbsp;cm (620mm roll); SH-C at 21.5×12×30.5&nbsp;cm
+                (690mm roll).</>,
             ]} />
             <Notice tone="warn">
               Colour and handle mismatches are reported as warnings, not used to silently drop machines.
@@ -201,6 +205,10 @@ export default function FaqTab({ machines, orders }) {
               A machine makes <Code>capacity per shift × efficiency</Code> bags in a shift, rounded down.
               Every machine now runs <B>three shifts a day, Monday to Friday</B> — fifteen shifts a week.
               The factory does not run at weekends, so there are no Saturday or Sunday slots.
+              MC-SH-B and MC-SH-C are SOS (square-bottom, no handle) lines installed May 2026; they are much
+              faster than the handle machines. Their shift capacity is taken from the current observed
+              speed — 330 bags/min on SH-B, 280 on SH-C — times an 8-hour shift. Those speeds are still
+              under observation, so the numbers will move.
             </P>
             <div className="rounded-lg border border-slate-200 overflow-hidden">
               <table className="w-full text-sm">

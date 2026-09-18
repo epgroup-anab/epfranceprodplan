@@ -761,6 +761,63 @@ export const SKUS = [
     "weekly_usage_cartons": 0
   },
   {
+    "sap_code": "37245",
+    "description": "SAC VAE 4LB petit -FSC2",
+    "customer": "Burger King",
+    "roll_width_mm": 620,
+    "gsm": 50,
+    "bags_per_carton": 1000,
+    "print_colors": 1,
+    "handle_type": "SQR BOTTOM",
+    "paper_sap_code": null,
+    "carton_sap_code": null,
+    "primary_machine": "MC-SH-B",
+    "primary_machine_only": true,
+    "compatible_machines": [
+      "MC-SH-B"
+    ],
+    "monthly_requirement_cartons": 0,
+    "weekly_usage_cartons": 0
+  },
+  {
+    "sap_code": "37246",
+    "description": "SAC VAE 8LB MOYEN -FSC2",
+    "customer": "Burger King",
+    "roll_width_mm": 620,
+    "gsm": 50,
+    "bags_per_carton": 1000,
+    "print_colors": 1,
+    "handle_type": "SQR BOTTOM",
+    "paper_sap_code": null,
+    "carton_sap_code": null,
+    "primary_machine": "MC-SH-B",
+    "primary_machine_only": true,
+    "compatible_machines": [
+      "MC-SH-B"
+    ],
+    "monthly_requirement_cartons": 0,
+    "weekly_usage_cartons": 0
+  },
+  {
+    "sap_code": "37247",
+    "description": "SAC VAE 12LB GRAND -FSC2",
+    "customer": "Burger King",
+    "roll_width_mm": 690,
+    "gsm": 50,
+    "bags_per_carton": 1000,
+    "print_colors": 1,
+    "handle_type": "SQR BOTTOM",
+    "paper_sap_code": null,
+    "carton_sap_code": null,
+    "primary_machine": "MC-SH-C",
+    "primary_machine_only": true,
+    "compatible_machines": [
+      "MC-SH-C"
+    ],
+    "monthly_requirement_cartons": 0,
+    "weekly_usage_cartons": 0
+  },
+  {
     "sap_code": "37248",
     "description": "SAC DELIVERY BK 2025  - FSC2",
     "customer": "Burger King",
@@ -1031,6 +1088,44 @@ export const SKUS = [
     "weekly_usage_cartons": 0
   },
   {
+    "sap_code": "37626",
+    "description": "MCD FR 15412033 BAG B FSC5",
+    "customer": "McDonald's France",
+    "roll_width_mm": 620,
+    "gsm": 50,
+    "bags_per_carton": 1000,
+    "print_colors": 1,
+    "handle_type": "SQR BOTTOM",
+    "paper_sap_code": null,
+    "carton_sap_code": null,
+    "primary_machine": "MC-SH-B",
+    "primary_machine_only": true,
+    "compatible_machines": [
+      "MC-SH-B"
+    ],
+    "monthly_requirement_cartons": 0,
+    "weekly_usage_cartons": 0
+  },
+  {
+    "sap_code": "37628",
+    "description": "MCD FR 15762090 BAG C FSC5",
+    "customer": "McDonald's France",
+    "roll_width_mm": 690,
+    "gsm": 50,
+    "bags_per_carton": 1000,
+    "print_colors": 1,
+    "handle_type": "SQR BOTTOM",
+    "paper_sap_code": null,
+    "carton_sap_code": null,
+    "primary_machine": "MC-SH-C",
+    "primary_machine_only": true,
+    "compatible_machines": [
+      "MC-SH-C"
+    ],
+    "monthly_requirement_cartons": 0,
+    "weekly_usage_cartons": 0
+  },
+  {
     "sap_code": "37640",
     "description": "INTERMARCH - SAC APPLI FSC 2",
     "customer": "Intermarché",
@@ -1045,6 +1140,44 @@ export const SKUS = [
     "primary_machine_only": false,
     "compatible_machines": [
       "MC-4"
+    ],
+    "monthly_requirement_cartons": 0,
+    "weekly_usage_cartons": 0
+  },
+  {
+    "sap_code": "37908",
+    "description": "MCD DE 13229686 BAG B FSC5",
+    "customer": "McDonald's Germany",
+    "roll_width_mm": 620,
+    "gsm": 50,
+    "bags_per_carton": 1000,
+    "print_colors": 1,
+    "handle_type": "SQR BOTTOM",
+    "paper_sap_code": null,
+    "carton_sap_code": null,
+    "primary_machine": "MC-SH-B",
+    "primary_machine_only": true,
+    "compatible_machines": [
+      "MC-SH-B"
+    ],
+    "monthly_requirement_cartons": 0,
+    "weekly_usage_cartons": 0
+  },
+  {
+    "sap_code": "37909",
+    "description": "MCD DE 15849204 BAG C FSC5",
+    "customer": "McDonald's Germany",
+    "roll_width_mm": 690,
+    "gsm": 50,
+    "bags_per_carton": 1000,
+    "print_colors": 1,
+    "handle_type": "SQR BOTTOM",
+    "paper_sap_code": null,
+    "carton_sap_code": null,
+    "primary_machine": "MC-SH-C",
+    "primary_machine_only": true,
+    "compatible_machines": [
+      "MC-SH-C"
     ],
     "monthly_requirement_cartons": 0,
     "weekly_usage_cartons": 0

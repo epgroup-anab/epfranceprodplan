@@ -1,6 +1,7 @@
-// 8 production machines. Live configuration as of Aug 2026.
+// 10 production machines. Live configuration as of Sep 2026.
 // capacity_per_shift is nominal; effective output = capacity_per_shift * efficiency.
 // All machines run three shifts Monday to Friday.
+// MC-SH-B / MC-SH-C speed is bags per minute × 60 × 8-hour shift; still under observation.
 
 export const MACHINES = [
   {
@@ -130,5 +131,55 @@ export const MACHINES = [
     "shifts_fri": 3,
     "status": "active",
     "notes": "ALDI, Naturalia, Casino Corsica, Morrisons Takeaway"
+  },
+  {
+    "id": "MC-SH-B",
+    "name": "MC-SH-B",
+    "internal_name": "MC SH-B",
+    "category": "SOS FIXED",
+    "description": "Model DW807A square bottom without handle — fixed 18×12×29 cm",
+    "capacity_per_shift": 158400,
+    "efficiency": 0.95,
+    "max_print_colors": 4,
+    "handle_type": "SQR BOTTOM",
+    "double_layer_capable": false,
+    "fixed_size": true,
+    "bag_width_cm": 18,
+    "bag_gusset_cm": 12,
+    "bag_height_cm": 29,
+    "roll_width_mm": 620,
+    "gsm": 50,
+    "cut_repeat_cm": 38,
+    "speed_per_min": 330,
+    "bags_per_carton": 1000,
+    "shifts_mon_thu": 3,
+    "shifts_fri": 3,
+    "status": "active",
+    "notes": "Installed May 2026. Fixed-size machine — bag size cannot be changed. Nominal 330 bags/min still under observation. Packs 1000 pcs/box (500 if new wrapping is bought)."
+  },
+  {
+    "id": "MC-SH-C",
+    "name": "MC-SH-C",
+    "internal_name": "MC SH-C",
+    "category": "SOS FIXED",
+    "description": "Model DW808A square bottom without handle — fixed 21.5×12×30.5 cm",
+    "capacity_per_shift": 134400,
+    "efficiency": 0.95,
+    "max_print_colors": 4,
+    "handle_type": "SQR BOTTOM",
+    "double_layer_capable": false,
+    "fixed_size": true,
+    "bag_width_cm": 21.5,
+    "bag_gusset_cm": 12,
+    "bag_height_cm": 30.5,
+    "roll_width_mm": 690,
+    "gsm": 50,
+    "cut_repeat_cm": 39.5,
+    "speed_per_min": 280,
+    "bags_per_carton": 1000,
+    "shifts_mon_thu": 3,
+    "shifts_fri": 3,
+    "status": "active",
+    "notes": "Installed May 2026. Fixed-size machine — bag size cannot be changed. Nominal 280 bags/min still under observation. Packs 1000 pcs/box (500 if new wrapping is bought)."
   }
 ];
