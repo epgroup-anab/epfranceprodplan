@@ -188,7 +188,9 @@ export function generatePlan(orders, machines, options = {}) {
   if (!active.length) throw new Error('No active machines — nothing can be scheduled.');
   if (!ranked.length) {
     return { slots: [], weeks: 0, startWeek, metrics: emptyMetrics(), unplaced: [], overflow: [],
-      orderStatus: [], prioritySignature: signature, editCount: 0 };
+      orderStatus: [], prioritySignature: signature, editCount: 0,
+      dataWarnings: [{ severity: 'error', sap_code: '',
+        message: 'Nothing was scheduled. Every line has 0 bags to make, so the grid is empty. Reload the sheet — demand has to be in Week 1–9, or in month columns such as October, November and December.' }] };
   }
 
   // Widen the horizon until the whole book fits.
@@ -285,7 +287,13 @@ export function generatePlan(orders, machines, options = {}) {
   return {
     slots, weeks, startWeek, horizon,
     unplaced: result.unplaced, overflow: result.overflow, orderStatus,
-    dataWarnings: validateOrders(planable, active),
+    dataWarnings: [
+      ...validateOrders(planable, active),
+      ...(orders.some((o) => o.stock_unknown) ? [{
+        severity: 'warning', sap_code: '',
+        message: 'This sheet has no finished-goods stock column, so stock on hand was treated as zero and the full forecast was scheduled.',
+      }] : []),
+    ],
     metrics: buildMetrics(slots, active, weeks, changeovers, widthChanges, colourChanges),
     prioritySignature: signature,
     generatedAt: new Date().toISOString(),

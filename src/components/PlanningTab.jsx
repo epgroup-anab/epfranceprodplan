@@ -94,12 +94,14 @@ export default function PlanningTab({ orders, machines, plan, onPlan, onClear })
       <Card
         title="Production Planning"
         subtitle={plan
-          ? `Week ${week + 1} of ${plan.weeks} — ${formatDate(weekStart)} to ${formatDate(addDays(weekStart, 4))}`
-            + (plan.editCount ? ` · ${plan.editCount} manual edit${plan.editCount > 1 ? 's' : ''}` : '')
+          ? (plan.weeks > 0
+            ? `Week ${week + 1} of ${plan.weeks} — ${formatDate(weekStart)} to ${formatDate(addDays(weekStart, 4))}`
+              + (plan.editCount ? ` · ${plan.editCount} manual edit${plan.editCount > 1 ? 's' : ''}` : '')
+            : 'Nothing was placed on the grid.')
           : `${orders.length} orders ready. Generating plans the entire order book across as many weeks as it takes.`}
         right={
           <div className="flex items-center gap-2">
-            {plan && (
+            {plan && plan.weeks > 0 && (
               <>
                 <Button variant="ghost" onClick={() => setWeek((w) => Math.max(0, w - 1))} disabled={week === 0}>
                   <ChevronLeft className="w-4 h-4" />

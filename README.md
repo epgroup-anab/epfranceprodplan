@@ -89,7 +89,7 @@ is decoded correctly on import.
 ```
 src/
   data/machines.js        10 machines — capacity, shifts, colours, handle type
-  data/skus.js            60 SKUs — machine compatibility, roll width, colours
+  data/skus.js            69 SKUs — machine compatibility, roll width, colours
   lib/csv.js              CSV parsing, cp1252 decoding, header matching
   lib/parseOrders.js      John Poole sheet → orders
   lib/parseMaterials.js   QuickBase export → materials, classified
