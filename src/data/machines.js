@@ -1,6 +1,8 @@
 // 10 production machines. Live configuration as of Sep 2026.
 // capacity_per_shift is nominal; effective output = capacity_per_shift * efficiency.
-// All machines run three shifts Monday to Friday.
+// Every machine can run three shifts seven days a week. SH-B and SH-C run all
+// weekend; Garant and Newlong weekend shifts depend on operators and are
+// changed on the Machines tab.
 // MC-SH-B / MC-SH-C speed is bags per minute × 60 × 8-hour shift; still under observation.
 
 export const MACHINES = [
@@ -17,6 +19,8 @@ export const MACHINES = [
     "double_layer_capable": false,
     "shifts_mon_thu": 3,
     "shifts_fri": 3,
+    "shifts_sat": 3,
+    "shifts_sun": 3,
     "status": "active",
     "notes": "Primarily dedicated to CF FR 35627. Upgraded to 2-colour print 28-01-2026."
   },
@@ -33,6 +37,8 @@ export const MACHINES = [
     "double_layer_capable": false,
     "shifts_mon_thu": 3,
     "shifts_fri": 3,
+    "shifts_sat": 3,
+    "shifts_sun": 3,
     "status": "active",
     "notes": "Versatile machine — Sushi Shop, VIVAL, SPAR, Mandarine, System-U, LAD"
   },
@@ -49,6 +55,8 @@ export const MACHINES = [
     "double_layer_capable": false,
     "shifts_mon_thu": 3,
     "shifts_fri": 3,
+    "shifts_sat": 3,
+    "shifts_sun": 3,
     "status": "active",
     "notes": "Often runs Monoprix ALI, SPAR, Casino products. Upgraded to 4-colour print 29-01-2026."
   },
@@ -65,6 +73,8 @@ export const MACHINES = [
     "double_layer_capable": false,
     "shifts_mon_thu": 3,
     "shifts_fri": 3,
+    "shifts_sat": 3,
+    "shifts_sun": 3,
     "status": "active",
     "notes": "Runs BON SENS, NETTO, MORRISONS, System-U Drive"
   },
@@ -81,6 +91,8 @@ export const MACHINES = [
     "double_layer_capable": true,
     "shifts_mon_thu": 3,
     "shifts_fri": 3,
+    "shifts_sat": 3,
+    "shifts_sun": 3,
     "status": "active",
     "notes": "ONLY machine for 4-color prints and double layer bags"
   },
@@ -97,6 +109,8 @@ export const MACHINES = [
     "double_layer_capable": false,
     "shifts_mon_thu": 3,
     "shifts_fri": 3,
+    "shifts_sat": 3,
+    "shifts_sun": 3,
     "status": "active",
     "notes": "ONLY machine for Twisted Handle products. Also capable of square bottom without handles."
   },
@@ -113,6 +127,8 @@ export const MACHINES = [
     "double_layer_capable": false,
     "shifts_mon_thu": 3,
     "shifts_fri": 3,
+    "shifts_sat": 3,
+    "shifts_sun": 3,
     "status": "active",
     "notes": "ALDI, Naturalia, CF Spain, Casino products"
   },
@@ -129,6 +145,8 @@ export const MACHINES = [
     "double_layer_capable": false,
     "shifts_mon_thu": 3,
     "shifts_fri": 3,
+    "shifts_sat": 3,
+    "shifts_sun": 3,
     "status": "active",
     "notes": "ALDI, Naturalia, Casino Corsica, Morrisons Takeaway"
   },
@@ -154,6 +172,8 @@ export const MACHINES = [
     "bags_per_carton": 1000,
     "shifts_mon_thu": 3,
     "shifts_fri": 3,
+    "shifts_sat": 3,
+    "shifts_sun": 3,
     "status": "active",
     "notes": "Installed May 2026. Fixed-size machine — bag size cannot be changed. Nominal 330 bags/min still under observation. Packs 1000 pcs/box (500 if new wrapping is bought)."
   },
@@ -179,6 +199,8 @@ export const MACHINES = [
     "bags_per_carton": 1000,
     "shifts_mon_thu": 3,
     "shifts_fri": 3,
+    "shifts_sat": 3,
+    "shifts_sun": 3,
     "status": "active",
     "notes": "Installed May 2026. Fixed-size machine — bag size cannot be changed. Nominal 280 bags/min still under observation. Packs 1000 pcs/box (500 if new wrapping is bought)."
   }

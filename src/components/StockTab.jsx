@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Search, Package, AlertTriangle } from 'lucide-react';
-import { Card, Empty, TableWrap, Th, Td, Notice, fmt } from './ui.jsx';
+import { Search, Package, AlertTriangle, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { Card, Button, Empty, TableWrap, Th, Td, Notice, fmt } from './ui.jsx';
 
 const TYPES = ['ALL', 'FINISHED', 'PAPER', 'HANDLE', 'PATCH', 'CARTON', 'INK', 'GLUE', 'OTHER'];
 
@@ -15,7 +15,42 @@ const TYPE_STYLE = {
   OTHER: 'bg-slate-100 text-slate-600',
 };
 
-export default function StockTab({ materials, sourceName }) {
+/** Where the numbers came from, and a way to pull them again. */
+function LiveBar({ live, onRefresh }) {
+  const time = live.fetchedAt
+    ? new Date(live.fetchedAt).toLocaleString('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit' })
+    : null;
+  const tone = {
+    live: 'bg-emerald-50 border-emerald-200 text-emerald-900',
+    error: 'bg-red-50 border-red-200 text-red-900',
+  }[live.status] || 'bg-slate-50 border-slate-200 text-slate-700';
+
+  return (
+    <div className={`flex flex-wrap items-center gap-3 border rounded-lg px-4 py-2.5 text-sm ${tone}`}>
+      {live.status === 'live' ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
+      <div className="flex-1 min-w-[16rem]">
+        {live.status === 'live' && <><strong>Live from QuickBase Plant 9000</strong> · read {time}. SAP updates QuickBase around 11:00 and again between 22:00 and 23:00.</>}
+        {live.status === 'not-configured' && <>Live QuickBase stock is not connected yet, so this shows the last uploaded export. Once the QuickBase token is added to the site, stock loads here automatically.</>}
+        {live.status === 'error' && <><strong>Could not read live stock.</strong> {live.error} Showing the last stock loaded.</>}
+        {live.status === 'idle' && <>Checking QuickBase for live stock…</>}
+      </div>
+      <Button variant="ghost" onClick={onRefresh} disabled={live.loading}>
+        <RefreshCw className={`w-4 h-4 ${live.loading ? 'animate-spin' : ''}`} />{live.loading ? 'Checking…' : 'Refresh'}
+      </Button>
+    </div>
+  );
+}
+
+export default function StockTab({ materials, sourceName, live = { status: 'idle' }, onRefresh }) {
+  return (
+    <div className="space-y-5">
+      <LiveBar live={live} onRefresh={onRefresh} />
+      <StockTable materials={materials} sourceName={sourceName} />
+    </div>
+  );
+}
+
+function StockTable({ materials, sourceName }) {
   const [query, setQuery] = useState('');
   const [type, setType] = useState('ALL');
 

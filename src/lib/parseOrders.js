@@ -1,9 +1,7 @@
 import * as XLSX from 'xlsx';
 import { parseCsv, decodeBuffer, toNumber, headerIndex } from './csv.js';
 import { normalisePriority } from './priority.js';
-import { SKUS } from '../data/skus.js';
-
-const skuBy = new Map(SKUS.map((s) => [String(s.sap_code), s]));
+import { mergeSkus } from './master.js';
 
 /** Read a File (csv or xlsx) into an array-of-arrays. */
 async function readGrid(file) {
@@ -69,8 +67,9 @@ function findHeaderRow(grid) {
  * December) in cartons — those are converted with bags per carton.
  * Returns { orders, warnings }.
  */
-export function parseOrderGrid(grid) {
+export function parseOrderGrid(grid, skus = mergeSkus()) {
   if (!grid.length) throw new Error('That file has no rows in it.');
+  const skuBy = new Map(skus.map((s) => [String(s.sap_code), s]));
 
   const headerAt = findHeaderRow(grid);
   const headerRow = grid[headerAt] || [];
@@ -102,7 +101,7 @@ export function parseOrderGrid(grid) {
     seen.add(sap);
 
     const master = skuBy.get(sap);
-    if (!master) warnings.push(`SAP ${sap} is not in the SKU master, so it has no machine compatibility and cannot be scheduled.`);
+    if (!master) warnings.push(`SAP ${sap} is not in the SKU master, so it has no machine compatibility and cannot be scheduled. Add it on the Machines tab.`);
 
     const bagsPerCarton = toNumber(row[cBpc]) || master?.bags_per_carton || 250;
     const monthlyCartons = toNumber(row[cMonthly]);

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Upload, ClipboardList, Package, Settings, BarChart3, HardDrive, HelpCircle } from 'lucide-react';
 import ImportTab from './components/ImportTab.jsx';
 import OrdersTab from './components/OrdersTab.jsx';
@@ -6,9 +6,13 @@ import StockTab from './components/StockTab.jsx';
 import MachinesTab from './components/MachinesTab.jsx';
 import PlanningTab from './components/PlanningTab.jsx';
 import FaqTab from './components/FaqTab.jsx';
-import { MACHINES } from './data/machines.js';
 import { load, save, clear, clearAll, isEphemeral } from './lib/storage.js';
+import {
+  loadSkuOverrides, saveSkuOverrides, loadMachineOverrides, saveMachineOverrides,
+  mergeSkus, mergeMachines, applyMasterToOrders,
+} from './lib/master.js';
 import { normalisePriority } from './lib/priority.js';
+import { fetchLiveStock } from './lib/liveStock.js';
 import { fmt } from './components/ui.jsx';
 
 const TABS = [
@@ -26,14 +30,33 @@ export default function App() {
   const [materials, setMaterials] = useState([]);
   const [plan, setPlan] = useState(null);
   const [sources, setSources] = useState({});
+  const [skuOverrides, setSkuOverrides] = useState(loadSkuOverrides);
+  const [machineOverrides, setMachineOverrides] = useState(loadMachineOverrides);
+
+  const skus = useMemo(() => mergeSkus(skuOverrides), [skuOverrides]);
+  const machines = useMemo(() => mergeMachines(machineOverrides), [machineOverrides]);
 
   // Restore whatever was here last time.
   useEffect(() => {
-    setOrders(load('orders', []) || []);
+    setOrders(applyMasterToOrders(load('orders', []) || [], mergeSkus(loadSkuOverrides())));
     setMaterials(load('materials', []) || []);
     setPlan(load('plan', null));
     setSources(load('pps_sources', {}) || {});
+    refreshStock();
   }, []);
+
+  const [live, setLive] = useState({ status: 'idle' });
+
+  /** Live QuickBase stock replaces an uploaded export whenever the feed answers. */
+  const refreshStock = async () => {
+    setLive((l) => ({ ...l, loading: true }));
+    const result = await fetchLiveStock();
+    if (result.status === 'live') {
+      setMaterials(result.materials); save('materials', result.materials);
+      setSources((s) => { const next = { ...s, materials: 'QuickBase — live' }; save('pps_sources', next); return next; });
+    }
+    setLive({ status: result.status, fetchedAt: result.fetchedAt, error: result.error, loading: false });
+  };
 
   const handleOrders = (parsed, filename) => {
     setOrders(parsed); save('orders', parsed);
@@ -73,6 +96,23 @@ export default function App() {
     setOrders(next); save('orders', next);
   };
 
+  /** patch = null puts the SAP code back to the built-in master (or removes a hand-added one). */
+  const handleSkuChange = (sapCode, patch) => {
+    const next = { ...skuOverrides };
+    if (patch) next[String(sapCode)] = { ...(next[String(sapCode)] || {}), ...patch };
+    else delete next[String(sapCode)];
+    setSkuOverrides(next); saveSkuOverrides(next);
+    const updated = applyMasterToOrders(orders, mergeSkus(next));
+    setOrders(updated); save('orders', updated);
+  };
+
+  const handleMachineChange = (machineId, patch) => {
+    const next = { ...machineOverrides };
+    if (patch) next[machineId] = { ...(next[machineId] || {}), ...patch };
+    else delete next[machineId];
+    setMachineOverrides(next); saveMachineOverrides(next);
+  };
+
   const handleClearAll = () => {
     clearAll();
     setOrders([]); setMaterials([]); setPlan(null); setSources({});
@@ -98,7 +138,7 @@ export default function App() {
               {isEphemeral() ? 'Session only — storage unavailable' : 'Saved in this browser'}
             </span>
             <span className="tabular-nums">
-              {fmt(orders.length)} orders · {fmt(materials.length)} materials · {MACHINES.length} machines
+              {fmt(orders.length)} orders · {fmt(materials.length)} materials · {machines.length} machines
             </span>
           </div>
         </div>
@@ -123,13 +163,16 @@ export default function App() {
           <OrdersTab orders={orders} sourceName={sources.orders}
             onPriority={handlePriority} onResetPriorities={handleResetPriorities} />
         )}
-        {tab === 'stock'    && <StockTab materials={materials} sourceName={sources.materials} />}
-        {tab === 'machines' && <MachinesTab machines={MACHINES} />}
+        {tab === 'stock'    && <StockTab materials={materials} sourceName={sources.materials} live={live} onRefresh={refreshStock} />}
+        {tab === 'machines' && (
+          <MachinesTab machines={machines} skus={skus} orders={orders}
+            onMachineChange={handleMachineChange} onSkuChange={handleSkuChange} />
+        )}
         {tab === 'planning' && (
-          <PlanningTab orders={orders} machines={MACHINES} plan={plan}
+          <PlanningTab orders={orders} machines={machines} skus={skus} plan={plan}
             onPlan={handlePlan} onClear={handleClearPlan} />
         )}
-        {tab === 'faq'      && <FaqTab machines={MACHINES} orders={orders} />}
+        {tab === 'faq'      && <FaqTab machines={machines} orders={orders} />}
       </main>
     </div>
   );

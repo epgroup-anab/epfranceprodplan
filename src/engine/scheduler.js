@@ -4,6 +4,24 @@ import {
 import { prioritySignature } from '../lib/priority.js';
 
 /**
+ * Fingerprint of everything the plan was built from that the planner can
+ * change in the app: priorities, machine lists per SAP code, and shift
+ * patterns. When it moves, the plan on screen is out of date.
+ */
+export function planSignature(orders = [], machines = []) {
+  const compat = [...orders]
+    .sort((a, b) => String(a.sap_code).localeCompare(String(b.sap_code)))
+    .map((o) => `${o.sap_code}:${(o.compatible_machines || []).join('+')}:${o.primary_machine || ''}`)
+    .join(';');
+  const shifts = machines
+    .map((m) => `${m.id}:${m.status}:${m.shifts_mon_thu}/${m.shifts_fri}/${m.shifts_sat ?? 0}/${m.shifts_sun ?? 0}`)
+    .join(';');
+  let h = 2166136261;
+  for (const c of `${prioritySignature(orders)}|${compat}|${shifts}`) h = Math.imul(h ^ c.charCodeAt(0), 16777619);
+  return (h >>> 0).toString(36);
+}
+
+/**
  * SKUs that are contractually tied to one machine. Carrefour France always
  * runs on MC-1. If demand exceeds what MC-1 can make, the excess spills onto
  * the SKU's other compatible machines and the plan reports it, rather than
@@ -183,12 +201,12 @@ export function generatePlan(orders, machines, options = {}) {
   const ranked = rankOrders(planable);
   const active = machines.filter((m) => m.status === 'active');
 
-  const signature = prioritySignature(orders);
+  const signature = planSignature(orders, machines);
 
   if (!active.length) throw new Error('No active machines — nothing can be scheduled.');
   if (!ranked.length) {
     return { slots: [], weeks: 0, startWeek, metrics: emptyMetrics(), unplaced: [], overflow: [],
-      orderStatus: [], prioritySignature: signature, editCount: 0,
+      orderStatus: [], inputSignature: signature, editCount: 0,
       dataWarnings: [{ severity: 'error', sap_code: '',
         message: 'Nothing was scheduled. Every line has 0 bags to make, so the grid is empty. Reload the sheet — demand has to be in Week 1–9, or in month columns such as October, November and December.' }] };
   }
@@ -295,7 +313,7 @@ export function generatePlan(orders, machines, options = {}) {
       }] : []),
     ],
     metrics: buildMetrics(slots, active, weeks, changeovers, widthChanges, colourChanges),
-    prioritySignature: signature,
+    inputSignature: signature,
     generatedAt: new Date().toISOString(),
     editCount: 0,
   };

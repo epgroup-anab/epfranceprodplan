@@ -44,7 +44,11 @@ async function readGrid(file) {
  * committed quantities that cannot actually be consumed.
  */
 export async function parseMaterialsSheet(file) {
-  const grid = await readGrid(file);
+  return parseMaterialsGrid(await readGrid(file));
+}
+
+/** Same parse for a header row plus data rows, however they arrived — file or live feed. */
+export function parseMaterialsGrid(grid) {
   if (!grid.length) throw new Error('That file has no rows in it.');
 
   const at = headerIndex(grid[0]);

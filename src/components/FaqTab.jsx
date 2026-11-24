@@ -45,9 +45,10 @@ export default function FaqTab({ machines, orders }) {
               <><B>Order sheet</B> (John Poole&apos;s OrderSheet, csv or xlsx) — one row per SAP code, with
                 priority, weekly demand in bags, current stock and bags per carton. Columns are matched
                 by name, so the sheet can be reordered without breaking the import.</>,
-              <><B>Materials export</B> (Materials_Plant_9000.csv) — free stock of paper, handles, patches,
-                cartons, ink and glue. This is shown on the Stock tab for reference; it does not currently
-                block a run from being scheduled.</>,
+              <><B>Stock</B> (QuickBase Materials Plant 9000) — free stock of paper, handles, patches,
+                cartons, ink and glue. Read live from QuickBase when the connection is set up (SAP updates
+                it around 11:00 and 22:00–23:00), otherwise from an uploaded export. This is shown on the
+                Stock tab for reference; it does not currently block a run from being scheduled.</>,
               <><B>SKU master</B> (built into the tool) — for each SAP code: roll width, gsm, bags per carton,
                 print colours, handle type, and the list of machines that SKU can run on.</>,
               <><B>Machine master</B> (built into the tool) — capacity per shift, efficiency, print colour
@@ -162,7 +163,10 @@ export default function FaqTab({ machines, orders }) {
             </P>
             <List items={[
               <><B>The SKU master&apos;s machine list is the authority.</B> Each SAP code carries a list of
-                machines it has genuinely run on. The planner will not put an order anywhere else on its own.</>,
+                machines it has genuinely run on. The planner will not put an order anywhere else on its own.
+                The list can be edited on the Machines tab: tick a machine against an SAP code to let the
+                planner use it, or add an SAP code that is not in the master yet. Edits are saved in this
+                browser and a Reset puts the built-in list back.</>,
               <><B>Primary machine.</B> Where a SKU has a preferred machine it is tried first, then the rest
                 of the list in order. This keeps products on the machine the operators know.</>,
               <><B>Primary machine only.</B> Some SKUs are locked to a single machine and never spill —
@@ -203,8 +207,10 @@ export default function FaqTab({ machines, orders }) {
           <Section id="capacity" open={open} toggle={toggle} title="Capacity, shifts and changeovers">
             <P>
               A machine makes <Code>capacity per shift × efficiency</Code> bags in a shift, rounded down.
-              Every machine now runs <B>three shifts a day, Monday to Friday</B> — fifteen shifts a week.
-              The factory does not run at weekends, so there are no Saturday or Sunday slots.
+              Every machine is set to <B>three shifts a day, seven days a week</B> — twenty-one shifts.
+              MC-SH-B and MC-SH-C run continuously. The Garant machines run at the weekend only when
+              operators are available, so set Saturday or Sunday to fewer shifts (or zero) for a machine
+              on the Machines tab when a weekend is not staffed. The next plan uses whatever is set there.
               MC-SH-B and MC-SH-C are SOS (square-bottom, no handle) lines installed May 2026; they are much
               faster than the handle machines. Their shift capacity is taken from the current observed
               speed — 330 bags/min on SH-B, 280 on SH-C — times an 8-hour shift. Those speeds are still
@@ -261,13 +267,15 @@ export default function FaqTab({ machines, orders }) {
                 weeks. Use this when the ranking is wrong. The Planning tab will warn you that the plan on
                 screen is out of date until you press Re-plan, and a Reset button puts every priority back
                 to what the sheet said.</>,
-              <><B>Click a shift on the Planning grid.</B> This opens the run details and lets you change
-                what runs in that one shift: swap the product, change the bag count, mark it as a
-                changeover, or clear it entirely. Nothing is re-planned around it — only that cell
-                changes, and every total is recalculated from the grid. Use this for the things the
-                order sheet cannot know: a machine down for maintenance, a customer calling on Friday, a
-                trial run. Hand-edited shifts are marked with a pencil on the grid and flagged in the
-                CSV export.</>,
+              <><B>Click a day on the Planning grid.</B> The grid shows one column per day; the day&apos;s
+                shifts are listed when you open it. From there you can run any SAP code — including one
+                that is not on the demand sheet — from that day to any end date and shift, mark a
+                changeover, or clear the days. By default the work already planned on that machine moves
+                later to make room, the same as inserting rows on the Excel plan; untick that to overwrite
+                instead. Clearing can pull later work forward to close the gap. Every total is then
+                recalculated from the grid. Use this for the things the order sheet cannot know: an urgent
+                EP UK order, a machine down for maintenance, a trial run. Hand-edited days are marked
+                with a pencil on the grid and flagged in the CSV export, which stays shift by shift.</>,
             ]} />
             <Notice tone="warn">
               Pressing Re-plan rebuilds the schedule from scratch and discards every hand edit on the

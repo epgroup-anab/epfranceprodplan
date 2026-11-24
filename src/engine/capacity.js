@@ -1,14 +1,18 @@
-/** Monday = 0 … Friday = 4. The factory does not run at weekends. */
-export const WORK_DAYS = 5;
+/** Monday = 0 … Sunday = 6. Weeks always start on Monday. */
+export const WORK_DAYS = 7;
 export const FRIDAY = 4;
-export const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+export const SATURDAY = 5;
+export const SUNDAY = 6;
+export const DAY_NAMES = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+export const MAX_SHIFTS_PER_DAY = 3;
 
 /** Shifts this machine runs on this weekday, read from the machine record. */
 export function shiftsPerDay(machine, dayIndex) {
   if (!machine || machine.status !== 'active') return 0;
-  const monThu = Number(machine.shifts_mon_thu ?? 3);
-  const fri = Number(machine.shifts_fri ?? 2);
-  return dayIndex >= FRIDAY ? fri : monThu;
+  if (dayIndex === SATURDAY) return Number(machine.shifts_sat ?? 0);
+  if (dayIndex === SUNDAY) return Number(machine.shifts_sun ?? 0);
+  if (dayIndex === FRIDAY) return Number(machine.shifts_fri ?? 3);
+  return Number(machine.shifts_mon_thu ?? 3);
 }
 
 /** Effective bags produced in one shift, after the efficiency factor. */
@@ -64,6 +68,13 @@ export function toISO(d) {
   const m = String(d.getMonth() + 1).padStart(2, '0');
   const day = String(d.getDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
+}
+
+/** Whole days from `fromIso` to `toIso`. Both are YYYY-MM-DD. */
+export function daysBetween(fromIso, toIso) {
+  const a = Date.parse(`${fromIso}T12:00:00Z`);
+  const b = Date.parse(`${toIso}T12:00:00Z`);
+  return Math.round((b - a) / 86400000);
 }
 
 export const formatDate = (iso) =>

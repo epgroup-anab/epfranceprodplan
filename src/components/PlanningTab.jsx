@@ -1,14 +1,11 @@
 import React, { useMemo, useState } from 'react';
 import { Play, ChevronLeft, ChevronRight, Download, Trash2, BarChart3, AlertTriangle, Info, Pencil } from 'lucide-react';
-import { generatePlan } from '../engine/scheduler.js';
-import { applyCellEdit, cellId, cellOf } from '../engine/planEdit.js';
-import { shiftsPerDay, DAY_NAMES, formatDate, addWeeks, addDays } from '../engine/capacity.js';
-import { prioritySignature } from '../lib/priority.js';
+import { generatePlan, planSignature } from '../engine/scheduler.js';
+import { applyRangeEdit } from '../engine/planEdit.js';
+import { shiftsPerDay, DAY_NAMES, SATURDAY, formatDate, addWeeks, addDays } from '../engine/capacity.js';
 import { Card, Button, Stat, Empty, Notice, fmt, PriorityBadge } from './ui.jsx';
-import PlanCellDialog from './PlanCellDialog.jsx';
+import PlanEditDialog from './PlanEditDialog.jsx';
 import { downloadCsv } from '../lib/storage.js';
-
-const MAX_SHIFTS = 3;
 
 /** Stable colour per SAP so the same product reads the same across the grid. */
 const PALETTE = [
@@ -27,11 +24,11 @@ const colourFor = (sap) => {
   return PALETTE[h % PALETTE.length];
 };
 
-export default function PlanningTab({ orders, machines, plan, onPlan, onClear }) {
+export default function PlanningTab({ orders, machines, skus, plan, onPlan, onClear }) {
   const [week, setWeek] = useState(0);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
-  const [openCell, setOpenCell] = useState(null);
+  const [openDay, setOpenDay] = useState(null);
 
   const runPlan = () => {
     setBusy(true); setError(null);
@@ -41,7 +38,7 @@ export default function PlanningTab({ orders, machines, plan, onPlan, onClear })
         const result = generatePlan(orders, machines);
         onPlan(result);
         setWeek(0);
-        setOpenCell(null);
+        setOpenDay(null);
       } catch (e) { setError(e.message); }
       setBusy(false);
     }, 20);
@@ -52,21 +49,18 @@ export default function PlanningTab({ orders, machines, plan, onPlan, onClear })
     const map = {};
     for (const s of plan.slots) {
       if (s.week !== week) continue;
-      (map[s.machine_id] ||= {})[`${s.dayIndex}-${s.shift}`] = s;
+      ((map[s.machine_id] ||= {})[s.dayIndex] ||= []).push(s);
     }
+    for (const days of Object.values(map)) for (const list of Object.values(days)) list.sort((a, b) => a.shift - b.shift);
     return map;
   }, [plan, week]);
 
-  const stale = plan?.prioritySignature && plan.prioritySignature !== prioritySignature(orders);
-
-  const openSlot = openCell
-    ? plan.slots.find((s) => cellId(cellOf(s)) === cellId(openCell)) || null
-    : null;
+  const stale = plan?.inputSignature && plan.inputSignature !== planSignature(orders, machines);
 
   const applyEdit = (edit) => {
-    const next = applyCellEdit(plan, machines, orders, openCell, edit);
+    const next = applyRangeEdit(plan, machines, orders, edit);
     onPlan(next);
-    setOpenCell(null);
+    setOpenDay(null);
     setWeek((w) => Math.min(w, Math.max(0, next.weeks - 1)));
   };
 
@@ -95,7 +89,7 @@ export default function PlanningTab({ orders, machines, plan, onPlan, onClear })
         title="Production Planning"
         subtitle={plan
           ? (plan.weeks > 0
-            ? `Week ${week + 1} of ${plan.weeks} — ${formatDate(weekStart)} to ${formatDate(addDays(weekStart, 4))}`
+            ? `Week ${week + 1} of ${plan.weeks} — ${formatDate(weekStart)} to ${formatDate(addDays(weekStart, 6))}`
               + (plan.editCount ? ` · ${plan.editCount} manual edit${plan.editCount > 1 ? 's' : ''}` : '')
             : 'Nothing was placed on the grid.')
           : `${orders.length} orders ready. Generating plans the entire order book across as many weeks as it takes.`}
@@ -133,8 +127,8 @@ export default function PlanningTab({ orders, machines, plan, onPlan, onClear })
               {stale && (
                 <div className="mb-4">
                   <Notice tone="warn">
-                    Priorities have changed on the Orders tab since this plan was generated.
-                    Press <strong>Re-plan</strong> to rebuild it, or keep this one and edit shifts by hand.
+                    Priorities, machine compatibility or shift patterns have changed since this plan was generated.
+                    Press <strong>Re-plan</strong> to rebuild it, or keep this one and edit it by hand.
                   </Notice>
                 </div>
               )}
@@ -151,9 +145,9 @@ export default function PlanningTab({ orders, machines, plan, onPlan, onClear })
                       tone={plan.orderStatus.every((o) => o.complete) ? 'good' : 'warn'} />
               </div>
 
-              <ShiftGrid machines={machines} byMachine={byMachine}
-                         onCellClick={(machine, dayIndex, shift) =>
-                           setOpenCell({ machine_id: machine.id, week, dayIndex, shift })} />
+              <DayGrid machines={machines} byMachine={byMachine} weekStart={weekStart}
+                       onDayClick={(machine, dayIndex) =>
+                         setOpenDay({ machine_id: machine.id, date: addDays(weekStart, dayIndex) })} />
 
               <div className="mt-5 grid lg:grid-cols-2 gap-5">
                 <Utilisation metrics={m} />
@@ -165,95 +159,121 @@ export default function PlanningTab({ orders, machines, plan, onPlan, onClear })
 
       {plan && <PlanNotices plan={plan} />}
 
-      {openCell && (
-        <PlanCellDialog
+      {openDay && (
+        <PlanEditDialog
+          key={`${openDay.machine_id}-${openDay.date}`}
           plan={plan}
-          machine={machines.find((m) => m.id === openCell.machine_id)}
+          machine={machines.find((m) => m.id === openDay.machine_id)}
           orders={orders}
-          cell={openCell}
-          slot={openSlot}
+          skus={skus}
+          date={openDay.date}
           onApply={applyEdit}
-          onClose={() => setOpenCell(null)}
+          onClose={() => setOpenDay(null)}
         />
       )}
     </div>
   );
 }
 
-function ShiftGrid({ machines, byMachine, onCellClick }) {
+/** Group a day's shifts into what the floor sees: changeovers, then each product with its bags. */
+function summariseDay(slots) {
+  const runs = [];
+  let changeover = null;
+  for (const s of slots) {
+    if (s.type === 'changeover') {
+      changeover = changeover || { width: false, edited: false, shifts: 0 };
+      changeover.width ||= !!s.width_change;
+      changeover.edited ||= !!s.edited;
+      changeover.shifts += 1;
+      continue;
+    }
+    const last = runs[runs.length - 1];
+    if (last && last.sap_code === s.sap_code) {
+      last.bags += s.bags; last.shifts += 1; last.edited ||= !!s.edited;
+    } else {
+      runs.push({ sap_code: s.sap_code, description: s.description, bags: s.bags, shifts: 1, edited: !!s.edited, manual: !!s.manual_sap });
+    }
+  }
+  return { runs, changeover };
+}
+
+function DayGrid({ machines, byMachine, weekStart, onDayClick }) {
   return (
     <div className="border border-slate-200 rounded-lg overflow-x-auto">
-      <table className="w-full text-xs border-collapse">
+      <table className="w-full text-xs border-collapse table-fixed">
         <thead>
           <tr className="bg-slate-50">
-            <th className="sticky-col bg-slate-50 text-left font-medium text-slate-500 px-3 py-2 border-b border-r border-slate-200 min-w-[5.5rem] w-[5.5rem]">Machine</th>
-            {DAY_NAMES.map((d) => (
-              Array.from({ length: MAX_SHIFTS }, (_, i) => (
-                <th key={`${d}${i}`} className={`font-medium text-slate-500 px-1 py-2 border-b border-slate-200 min-w-[4.9rem] ${i === MAX_SHIFTS - 1 ? 'border-r' : ''}`}>
-                  {d} <span className="text-slate-400">S{i + 1}</span>
-                </th>
-              ))
+            <th className="sticky-col bg-slate-50 text-left font-medium text-slate-500 px-3 py-2 border-b border-r border-slate-200 w-[6.5rem]">Machine</th>
+            {DAY_NAMES.map((d, i) => (
+              <th key={d} className={`font-medium px-2 py-2 border-b border-r border-slate-200 min-w-[7.5rem] ${i >= SATURDAY ? 'bg-slate-100 text-slate-600' : 'text-slate-500'}`}>
+                {d} <span className="text-slate-400 font-normal">{formatDate(addDays(weekStart, i)).replace(/ \d{4}$/, '')}</span>
+              </th>
             ))}
           </tr>
         </thead>
         <tbody>
           {machines.map((machine) => (
-            <tr key={machine.id} className="hover:bg-slate-50/50">
-              <td className="sticky-col bg-white px-3 py-2 border-b border-r border-slate-200">
+            <tr key={machine.id}>
+              <td className="sticky-col bg-white px-3 py-2 border-b border-r border-slate-200 align-top">
                 <div className="font-semibold text-slate-800">{machine.id}</div>
                 <div className="text-[10px] text-slate-400">{machine.category}</div>
               </td>
-              {DAY_NAMES.map((_, dayIndex) =>
-                Array.from({ length: MAX_SHIFTS }, (_, i) => {
-                  const shift = i + 1;
-                  const runs = shift <= shiftsPerDay(machine, dayIndex);
-                  const slot = byMachine[machine.id]?.[`${dayIndex}-${shift}`];
-                  const edge = i === MAX_SHIFTS - 1 ? 'border-r' : '';
+              {DAY_NAMES.map((_, dayIndex) => {
+                const shifts = shiftsPerDay(machine, dayIndex);
+                const weekend = dayIndex >= SATURDAY;
+                if (!shifts) return (
+                  <td key={dayIndex} onClick={() => onDayClick(machine, dayIndex)}
+                      className="border-b border-r border-slate-200 bg-slate-100/70 cursor-pointer text-center text-[10px] text-slate-400"
+                      title="This machine is not set to run this day — click to see or plan it">
+                    off
+                  </td>
+                );
 
-                  if (!runs) return <td key={`${dayIndex}-${shift}`} className={`border-b border-slate-200 bg-slate-100/70 ${edge}`}
-                    title="This machine does not run this shift" />;
+                const slots = byMachine[machine.id]?.[dayIndex] || [];
+                const { runs, changeover } = summariseDay(slots);
+                const free = shifts - slots.filter((s) => s.shift <= shifts).length;
 
-                  const open = () => onCellClick(machine, dayIndex, shift);
-
-                  if (!slot) return (
-                    <td key={`${dayIndex}-${shift}`} onClick={open}
-                        className={`border-b border-slate-200 cursor-pointer group ${edge}`}
-                        title="Free shift — click to schedule something here">
-                      <div className="opacity-0 group-hover:opacity-100 text-center text-[10px] text-slate-400">+ add</div>
-                    </td>
-                  );
-
-                  if (slot.type === 'changeover') return (
-                    <td key={`${dayIndex}-${shift}`} onClick={open} className={`border-b border-slate-200 p-1 cursor-pointer ${edge}`}>
-                      <div className="rounded border border-dashed border-slate-300 bg-slate-50 px-0.5 py-1 text-center text-[9px] font-medium text-slate-500 leading-tight hover:border-slate-400"
-                           title={`${slot.description}\nClick for details`}>
-                        {slot.width_change ? 'WIDTH CHG' : 'CHANGEOVER'}
-                      </div>
-                    </td>
-                  );
-
-                  return (
-                    <td key={`${dayIndex}-${shift}`} onClick={open} className={`border-b border-slate-200 p-1 cursor-pointer ${edge}`}>
-                      <div className={`relative rounded border px-1 py-1 leading-tight text-center hover:ring-2 hover:ring-blue-400 ${colourFor(slot.sap_code)}`}
-                           title={`${slot.sap_code} — ${slot.description}\n${fmt(slot.bags)} bags / ${fmt(slot.cartons)} cartons\n${slot.roll_width_mm}mm\nClick for the full run details`}>
-                        {slot.edited && <Pencil className="w-2.5 h-2.5 absolute top-0.5 right-0.5 opacity-60" />}
-                        <div className="font-semibold font-mono text-[11px]">{slot.sap_code}</div>
-                        <div className="tabular-nums opacity-70 text-[10px]">{fmt(slot.bags)}</div>
-                      </div>
-                    </td>
-                  );
-                })
-              )}
+                return (
+                  <td key={dayIndex} onClick={() => onDayClick(machine, dayIndex)}
+                      className={`border-b border-r border-slate-200 p-1 align-top cursor-pointer hover:bg-blue-50/40 ${weekend ? 'bg-slate-50/60' : ''}`}>
+                    <div className="space-y-1">
+                      {changeover && (
+                        <div className="flex items-center justify-center gap-1 rounded border border-dashed border-slate-400 bg-white px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-600"
+                             title={`Changeover — ${changeover.shifts} shift${changeover.shifts > 1 ? 's' : ''}`}>
+                          {changeover.width ? 'Width change' : 'Changeover'}
+                          {changeover.edited && <Pencil className="w-2.5 h-2.5 opacity-60" />}
+                        </div>
+                      )}
+                      {runs.map((r, i) => (
+                        <div key={`${r.sap_code}-${i}`}
+                             className={`relative rounded border px-1.5 py-1 leading-tight hover:ring-2 hover:ring-blue-400 ${colourFor(r.sap_code)}`}
+                             title={`${r.sap_code} — ${r.description}\n${fmt(r.bags)} bags over ${r.shifts} shift${r.shifts > 1 ? 's' : ''}${r.manual ? '\nNot on the demand sheet — added by hand' : ''}`}>
+                          {r.edited && <Pencil className="w-2.5 h-2.5 absolute top-0.5 right-0.5 opacity-60" />}
+                          <div className="font-semibold font-mono text-[11px]">{r.sap_code}</div>
+                          <div className="flex justify-between gap-1 text-[10px] opacity-75 tabular-nums">
+                            <span>{fmt(r.bags)}</span><span>{r.shifts}/{shifts}</span>
+                          </div>
+                        </div>
+                      ))}
+                      {free > 0 && (
+                        <div className="text-center text-[10px] text-slate-400">
+                          {free === shifts ? 'free — click to plan' : `${free} shift${free > 1 ? 's' : ''} free`}
+                        </div>
+                      )}
+                    </div>
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>
       </table>
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 px-3 py-2 bg-slate-50 border-t border-slate-200 text-[11px] text-slate-500">
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm border border-blue-200 bg-blue-100" />Product run — SAP code and bags</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm border border-dashed border-slate-300 bg-slate-50" />Changeover — costs one shift</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-slate-200" />Machine does not run this shift</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm border border-blue-200 bg-blue-100" />SAP code · bags · shifts used that day</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm border border-dashed border-slate-400 bg-white" />Changeover that day</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-slate-200" />Machine off that day</span>
         <span className="flex items-center gap-1.5"><Pencil className="w-3 h-3" />Edited by hand</span>
-        <span className="ml-auto text-slate-400">Click any shift for run details, or to change what runs there.</span>
+        <span className="ml-auto text-slate-400">Click a day to see its shifts, or to plan a job from that day to any end date.</span>
       </div>
     </div>
   );
