@@ -55,7 +55,7 @@ export default function PlanningTab({ orders, machines, skus, plan, onPlan, onCl
     return map;
   }, [plan, week]);
 
-  const stale = plan?.inputSignature && plan.inputSignature !== planSignature(orders, machines);
+  const stale = !!plan && plan.inputSignature !== planSignature(orders, machines);
 
   const applyEdit = (edit) => {
     const next = applyRangeEdit(plan, machines, orders, edit);
@@ -127,7 +127,9 @@ export default function PlanningTab({ orders, machines, skus, plan, onPlan, onCl
               {stale && (
                 <div className="mb-4">
                   <Notice tone="warn">
-                    Priorities, machine compatibility or shift patterns have changed since this plan was generated.
+                    {plan.inputSignature
+                      ? 'Priorities, machine compatibility or shift patterns have changed since this plan was generated.'
+                      : 'This plan was made by an earlier version of the planner, before weekend shifts.'}
                     Press <strong>Re-plan</strong> to rebuild it, or keep this one and edit it by hand.
                   </Notice>
                 </div>
