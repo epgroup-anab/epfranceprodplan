@@ -405,7 +405,8 @@ function buildMetrics(slots, machines, weeks, changeovers, widthChanges, colourC
     totalBags: production.reduce((a, s) => a + s.bags, 0),
     totalCartons: production.reduce((a, s) => a + s.cartons, 0),
     productionShifts: production.length,
-    changeoverShifts: slots.length - production.length,
+    changeoverShifts: slots.filter((s) => s.type === 'changeover').length,
+    breakdownShifts: slots.filter((s) => s.type === 'breakdown').length,
     changeovers, widthChanges, colourChanges,
     utilisation,
   };

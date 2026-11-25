@@ -7,13 +7,14 @@ import { locateDate, rangePositions, slotContext, slotsOnDay } from '../engine/p
 const ACTIONS = [
   { id: 'production', label: 'Run a job' },
   { id: 'changeover', label: 'Changeover' },
+  { id: 'breakdown', label: 'Breakdown' },
   { id: 'clear', label: 'Clear' },
 ];
 
 /**
  * One machine, one day: what is running, and the controls to change it from
  * that day through to any end date. The SAP code is free text, because the
- * jobs that most need placing by hand are the ones not on the demand sheet.
+ * jobs that most need placing by hand are the ones not on the forecast sheet.
  */
 export default function PlanEditDialog({ plan, machine, orders, skus, date, onApply, onClose }) {
   const rate = bagsPerShift(machine);
@@ -105,6 +106,7 @@ export default function PlanEditDialog({ plan, machine, orders, skus, date, onAp
                       <span className="w-14 text-xs font-medium text-slate-400">Shift {i + 1}</span>
                       {!s && <span className="text-slate-400">Free</span>}
                       {s?.type === 'changeover' && <span className="text-slate-600">{s.description}</span>}
+                      {s?.type === 'breakdown' && <span className="font-medium text-red-700">Breakdown — {s.description}</span>}
                       {s?.type === 'production' && (
                         <>
                           <span className="font-mono font-semibold text-slate-800">{s.sap_code}</span>
@@ -155,7 +157,7 @@ export default function PlanEditDialog({ plan, machine, orders, skus, date, onAp
           {action === 'production' && (
             <div className="grid sm:grid-cols-3 gap-3">
               <div className="sm:col-span-2">
-                <Field label="SAP code" hint="Pick from the list or type any SAP code — it does not need to be on the demand sheet.">
+                <Field label="SAP code" hint="Pick from the list or type any SAP code — it does not need to be on the forecast sheet.">
                   <input list="plan-edit-saps" value={sap} onChange={(e) => setSap(e.target.value)}
                          className={`${inputClass} font-mono`} placeholder="e.g. 37978" />
                   <datalist id="plan-edit-saps">
@@ -171,7 +173,7 @@ export default function PlanEditDialog({ plan, machine, orders, skus, date, onAp
                 <div className="sm:col-span-3 text-sm text-slate-600">
                   {known
                     ? <><span className="font-medium text-slate-800">{order?.description || master?.description}</span>
-                        {!order && <span className="text-slate-400"> — not on the demand sheet, will be added as a manual job</span>}</>
+                        {!order && <span className="text-slate-400"> — not on the forecast sheet, will be added as a manual job</span>}</>
                     : (
                       <Field label="Product name" hint="This SAP code is not in the master. Name it so the grid is readable.">
                         <input value={description} onChange={(e) => setDescription(e.target.value)}
@@ -196,6 +198,13 @@ export default function PlanEditDialog({ plan, machine, orders, skus, date, onAp
                 Roll-width change
               </label>
             </div>
+          )}
+
+          {action === 'breakdown' && (
+            <Field label="What happened" hint="Set the end date to your best guess. If the machine is down longer, add another breakdown from where this one ends.">
+              <input value={note} onChange={(e) => setNote(e.target.value)} className={inputClass}
+                     placeholder="e.g. glue unit failure, waiting for part" />
+            </Field>
           )}
 
           <div className="grid sm:grid-cols-4 gap-3">
@@ -224,13 +233,13 @@ export default function PlanEditDialog({ plan, machine, orders, skus, date, onAp
             <input type="checkbox" className="mt-0.5" checked={shiftExisting}
                    onChange={(e) => setShiftExisting(e.target.checked)} />
             <span>
-              {action === 'clear'
-                ? <>Pull the work planned after this on {machine.id} forward to close the gap</>
-                : <>Move the work already planned on {machine.id} later to make room</>}
+              {action === 'clear' && <>Pull the work planned after this on {machine.id} forward to close the gap</>}
+              {action === 'breakdown' && <>Move the work that was planned in these shifts to after the breakdown, so nothing is lost</>}
+              {action !== 'clear' && action !== 'breakdown' && <>Move the work already planned on {machine.id} later to make room</>}
               <span className="block text-xs text-slate-400">
-                {action === 'clear'
-                  ? 'Unticked, the shifts are left empty.'
-                  : 'Unticked, whatever is in those shifts is overwritten and lost from the plan.'}
+                {action === 'clear' && 'Unticked, the shifts are left empty.'}
+                {action === 'breakdown' && 'Unticked, the bags those shifts would have made are lost, and the orders show as short below the grid.'}
+                {action !== 'clear' && action !== 'breakdown' && 'Unticked, whatever is in those shifts is overwritten and lost from the plan.'}
               </span>
             </span>
           </label>

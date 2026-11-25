@@ -38,16 +38,16 @@ export default function FaqTab({ machines, orders }) {
         <div className="px-5 pb-5 space-y-2.5">
           <Section id="what" open={open} toggle={toggle} title="What the tool actually does">
             <P>
-              You give it the demand projection and it gives you a shift-by-shift schedule for all ten
+              You give it the forecast sheet and it gives you a shift-by-shift schedule for all ten
               machines, running as many weeks forward as it takes to make every bag on the forecast.
             </P>
             <List items={[
-              <><B>Demand projection</B> (xlsx or csv) — one row per SAP code with the sales person, the
+              <><B>Forecast / order sheet</B> (xlsx or csv) — one row per SAP code with the sales person, the
                 description and a column per month (for example November and December) in cartons.
                 Cartons are turned into bags with each product&apos;s bags per carton. &quot;MTO&quot; and
                 &quot;N/A&quot; count as zero. The sheet has no stock or priority column: free finished-goods
                 stock is taken live from QuickBase and subtracted, and every line starts at priority 3
-                until it is changed on the Orders tab. The older John Poole order sheet still imports.</>,
+                until it is changed on the Orders tab. The older weekly format (Week 1–9 in bags) still imports.</>,
               <><B>Stock</B> (QuickBase Materials Plant 9000) — free stock of paper, handles, patches,
                 cartons, ink and glue. Read live from QuickBase when the connection is set up (SAP updates
                 it around 11:00 and 22:00–23:00), otherwise from an uploaded export. This is shown on the
@@ -272,11 +272,12 @@ export default function FaqTab({ machines, orders }) {
                 to what the sheet said.</>,
               <><B>Click a day on the Planning grid.</B> The grid shows one column per day; the day&apos;s
                 shifts are listed when you open it. From there you can run any SAP code — including one
-                that is not on the demand sheet — from that day to any end date and shift, mark a
-                changeover, or clear the days. By default the work already planned on that machine moves
+                that is not on the forecast sheet — from that day to any end date and shift, mark a
+                changeover, record a breakdown, or clear the days. A breakdown blocks those shifts in red
+                and, by default, moves the work that was planned there to after it, so nothing is lost. By default the work already planned on that machine moves
                 later to make room, the same as inserting rows on the Excel plan; untick that to overwrite
                 instead. Clearing can pull later work forward to close the gap. Every total is then
-                recalculated from the grid. Use this for the things the order sheet cannot know: an urgent
+                recalculated from the grid. Use this for the things the forecast cannot know: an urgent
                 EP UK order, a machine down for maintenance, a trial run. Hand-edited days are marked
                 with a pencil on the grid and flagged in the CSV export, which stays shift by shift.</>,
             ]} />
@@ -306,7 +307,7 @@ export default function FaqTab({ machines, orders }) {
 
           <Section id="tips" open={open} toggle={toggle} title="Tips for using it well">
             <List items={[
-              <>Stock loads from QuickBase by itself, so only the demand projection needs uploading. A new sheet clears the
+              <>Stock loads from QuickBase by itself, so only the forecast sheet needs uploading. A new sheet clears the
                 existing plan on purpose, because the old plan no longer matches the demand.</>,
               <>Read the notices under the grid before anything else. Spill-over, unschedulable SKUs and
                 master data conflicts are all reported there.</>,

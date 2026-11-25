@@ -43,7 +43,7 @@ export default function OrdersTab({ orders, sourceName, machines, skus, onPriori
 
   if (!orders.length) {
     return <Card><Empty icon={ClipboardList} title="No orders yet">
-      Upload the demand projection on the Import tab and the extracted orders appear here.
+      Upload the forecast sheet on the Import tab and the extracted orders appear here.
     </Empty></Card>;
   }
 

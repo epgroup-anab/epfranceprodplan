@@ -85,7 +85,7 @@ export default function PlanningTab({ orders, machines, skus, plan, onPlan, onCl
 
   if (!orders.length) {
     return <Card><Empty icon={BarChart3} title="Nothing to plan yet">
-      Upload the demand projection on the Import tab, then come back and press Generate Plan.
+      Upload the forecast sheet on the Import tab, then come back and press Generate Plan.
     </Empty></Card>;
   }
 
@@ -147,7 +147,9 @@ export default function PlanningTab({ orders, machines, skus, plan, onPlan, onCl
               <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-5">
                 <Stat label="Weeks needed" value={plan.weeks} hint={`from ${formatDate(plan.startWeek)}`} />
                 <Stat label="Bags scheduled" value={fmt(m.totalBags)} hint={`${fmt(m.totalCartons)} cartons`} />
-                <Stat label="Production shifts" value={fmt(m.productionShifts)} />
+                <Stat label="Production shifts" value={fmt(m.productionShifts)}
+                      hint={m.breakdownShifts ? `${m.breakdownShifts} lost to breakdowns` : undefined}
+                      tone={m.breakdownShifts ? 'warn' : 'default'} />
                 <Stat label="Changeovers" value={m.changeovers}
                       hint={`${m.widthChanges} roll-width, ${m.colourChanges} print`}
                       tone={m.changeovers > 40 ? 'warn' : 'good'} />
@@ -191,7 +193,7 @@ export default function PlanningTab({ orders, machines, skus, plan, onPlan, onCl
 function summariseDay(slots) {
   const items = [];
   for (const s of slots) {
-    const key = s.type === 'changeover' ? 'changeover' : String(s.sap_code);
+    const key = s.type === 'production' ? String(s.sap_code) : s.type;
     const last = items[items.length - 1];
     if (last && last.key === key && s.shift === last.lastShift + 1) {
       last.bags += s.bags; last.shifts += 1; last.lastShift = s.shift;
@@ -258,7 +260,16 @@ function DayGrid({ machines, byMachine, weekStart, colours, customerOf, onDayCli
                   <td key={dayIndex} onClick={() => onDayClick(machine, dayIndex)}
                       className={`border-b border-r border-slate-200 p-1 align-top cursor-pointer hover:bg-blue-50/40 ${weekend ? 'bg-slate-50/60' : ''}`}>
                     <div className="space-y-1">
-                      {items.map((it, i) => (it.type === 'changeover'
+                      {items.map((it, i) => (it.type === 'breakdown'
+                        ? (
+                          <div key={`brk-${i}`}
+                               className="flex items-center justify-center gap-1 rounded border border-red-300 bg-red-50 px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-red-700"
+                               title={`Breakdown — ${it.description}\n${shiftLabel(it)}, ${it.shifts} shift${it.shifts > 1 ? 's' : ''} lost`}>
+                            {split && <span className="font-mono font-normal text-red-400 normal-case">{shiftLabel(it)}</span>}
+                            <AlertTriangle className="w-2.5 h-2.5" />Breakdown
+                          </div>
+                        )
+                        : it.type === 'changeover'
                         ? (
                           <div key={`chg-${i}`}
                                className="flex items-center justify-center gap-1 rounded border border-dashed border-slate-400 bg-white px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-600"
@@ -271,7 +282,7 @@ function DayGrid({ machines, byMachine, weekStart, colours, customerOf, onDayCli
                           <div key={`${it.sap_code}-${i}`}
                                style={colours.get(String(it.sap_code))}
                                className="relative rounded border px-1.5 py-1 leading-tight hover:ring-2 hover:ring-blue-400"
-                               title={`${it.sap_code} — ${it.description}${customerOf(it.sap_code) ? `\n${customerOf(it.sap_code)}` : ''}\n${fmt(it.bags)} bags, ${shiftLabel(it)}${it.manual ? '\nNot on the demand sheet — added by hand' : ''}`}>
+                               title={`${it.sap_code} — ${it.description}${customerOf(it.sap_code) ? `\n${customerOf(it.sap_code)}` : ''}\n${fmt(it.bags)} bags, ${shiftLabel(it)}${it.manual ? '\nNot on the forecast sheet — added by hand' : ''}`}>
                             {it.edited && <Pencil className="w-2.5 h-2.5 absolute top-0.5 right-0.5 opacity-60" />}
                             <div className="flex items-center gap-1">
                               <BrandIcon customer={customerOf(it.sap_code)} />
@@ -300,6 +311,7 @@ function DayGrid({ machines, byMachine, weekStart, colours, customerOf, onDayCli
         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm border border-blue-200 bg-blue-100" />Customer · SAP code · bags · shifts used — one colour per product</span>
         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm border border-dashed border-slate-400 bg-white" />Changeover, in the shift it happens</span>
         <span className="flex items-center gap-1.5 font-mono">S1–S3</span><span className="-ml-4">which shifts, when a day is split</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm border border-red-300 bg-red-50" />Breakdown</span>
         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-slate-200" />Machine off that day</span>
         <span className="flex items-center gap-1.5"><Pencil className="w-3 h-3" />Edited by hand</span>
         <span className="ml-auto text-slate-400">Click a day to see its shifts, or to plan a job from that day to any end date.</span>

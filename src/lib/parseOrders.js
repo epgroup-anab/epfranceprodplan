@@ -62,8 +62,8 @@ function findHeaderRow(grid) {
 /**
  * Parse an order sheet or a demand projection.
  *
- * Columns are found by name, not position. The John Poole sheet has Week 1–9
- * in bags. Abraham's demand projection has month columns (October, November,
+ * Columns are found by name, not position. The older weekly sheet has Week 1–9
+ * in bags. The current forecast sheet has month columns (October, November,
  * December) in cartons — those are converted with bags per carton.
  * Returns { orders, warnings }.
  */
@@ -76,7 +76,7 @@ export function parseOrderGrid(grid, skus = mergeSkus()) {
   const at = headerIndex(headerRow);
   const cSap = at('SAP Code', 'SAP CODE', 'Sap Code', 'Material', 'Mat');
   if (cSap === -1) {
-    throw new Error('No "SAP Code" column found. Expected the demand projection (or a John Poole order sheet).');
+    throw new Error('No "SAP Code" column found. Expected the forecast sheet (Sap Code plus month columns).');
   }
   const cPriority = at('Priority');
   const cName     = at('Product Name', 'Name', 'Description', 'Desc', 'Des');

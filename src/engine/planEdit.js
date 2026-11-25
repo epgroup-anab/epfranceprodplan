@@ -66,15 +66,16 @@ export function rangePositions(plan, machine, range) {
   return positions.filter((p) => p >= 0);
 }
 
+const SLOT_PREFIX = { changeover: 'CHG', breakdown: 'BRK', production: 'SCH' };
 const slotId = (type, machineId, where) =>
-  `${type === 'changeover' ? 'CHG' : 'SCH'}_${machineId}_${where.date}_${where.shift}`;
+  `${SLOT_PREFIX[type] || 'SCH'}_${machineId}_${where.date}_${where.shift}`;
 
 /**
  * Put a job, a changeover, or nothing on a machine between two dates.
  *
  * edit = {
  *   machine_id, fromDate, fromShift, toDate, toShift,
- *   action: 'production' | 'changeover' | 'clear',
+ *   action: 'production' | 'changeover' | 'breakdown' | 'clear',
  *   sap_code, description, bags_per_shift, note,
  *   shift_existing: true → later work moves to make room (or closes the gap on clear)
  * }
@@ -155,6 +156,22 @@ export function applyRangeEdit(plan, machines, orders, edit) {
         bags: 0, cartons: 0,
         width_change: !!edit.width_change,
         colour_change: !edit.width_change,
+        edited: true,
+        ...where,
+      });
+    }
+  }
+
+  if (edit.action === 'breakdown') {
+    for (const pos of targets) {
+      const where = line.at(pos);
+      added.push({
+        id: slotId('breakdown', machine.id, where),
+        type: 'breakdown',
+        machine_id: machine.id,
+        sap_code: null,
+        description: edit.note?.trim() || 'Breakdown',
+        bags: 0, cartons: 0,
         edited: true,
         ...where,
       });

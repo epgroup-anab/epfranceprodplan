@@ -145,7 +145,7 @@ function Compatibility({ machines, skus, orders, onSkuChange }) {
 
         {missing.length > 0 && (
           <Notice tone="warn">
-            {missing.length} SAP code{missing.length > 1 ? 's' : ''} on the demand sheet {missing.length > 1 ? 'are' : 'is'} not in the master and cannot be planned
+            {missing.length} SAP code{missing.length > 1 ? 's' : ''} on the forecast sheet {missing.length > 1 ? 'are' : 'is'} not in the master and cannot be planned
             until {missing.length > 1 ? 'they are' : 'it is'} added: <span className="font-mono">{missing.map((o) => o.sap_code).join(', ')}</span>.
           </Notice>
         )}
@@ -159,7 +159,7 @@ function Compatibility({ machines, skus, orders, onSkuChange }) {
           {orders.length > 0 && (
             <label className="flex items-center gap-2 text-sm text-slate-600">
               <input type="checkbox" checked={sheetOnly} onChange={(e) => setSheetOnly(e.target.checked)} />
-              Only codes on the demand sheet
+              Only codes on the forecast sheet
             </label>
           )}
           <span className="text-xs text-slate-400">{rows.length} of {skus.length}</span>

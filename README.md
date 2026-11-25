@@ -1,6 +1,6 @@
 # Production Planner — France Paper Bag Manufacturing
 
-Upload the week's order sheet, upload today's stock, press Generate Plan.
+Upload the forecast / order sheet, press Generate Plan. Stock comes in live from QuickBase.
 Everything runs in the browser: no backend, no database, no network calls.
 Data is kept in `localStorage`, so it survives a refresh and never leaves the machine.
 
@@ -71,8 +71,11 @@ list in the SKU master is treated as the authoritative business rule.
 
 ## Input files
 
-**John Poole Order Sheet** (`.xlsx` or `.csv`) — columns are matched by *name*, not
-position, so extra columns and reordering are fine.
+**Forecast / order sheet** (`.xlsx` or `.csv`) — columns are matched by *name*, not
+position, so extra columns and reordering are fine. The current format is
+`Sap Code · sales person · Desc · Monthly Forecast · PAST 3 MTH AVG · <month> · <month>`,
+with each month in **cartons** ("MTO" / "N/A" count as zero). Free finished-goods stock
+is taken live from QuickBase and subtracted. The older weekly format is:
 
 `SAP Code · Priority · Product Name · Roll Width (mm) · Bags Per Carton ·
 Monthly Requirement (Cartons) · Current Stock (Cartons) · Week 1 … Week 9`
@@ -91,7 +94,7 @@ src/
   data/machines.js        10 machines — capacity, shifts, colours, handle type
   data/skus.js            69 SKUs — machine compatibility, roll width, colours
   lib/csv.js              CSV parsing, cp1252 decoding, header matching
-  lib/parseOrders.js      John Poole sheet → orders
+  lib/parseOrders.js      forecast / order sheet → orders
   lib/parseMaterials.js   QuickBase export → materials, classified
   lib/priority.js         the 1–5 priority scheme
   lib/storage.js          localStorage

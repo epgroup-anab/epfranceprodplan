@@ -54,7 +54,7 @@ export default function ImportTab({ orders, onOrders, onClear }) {
       const res = await fetch(EXAMPLE_URL);
       if (!res.ok) throw new Error(`the example file could not be downloaded (${res.status}).`);
       const blob = await res.blob();
-      await handleOrders(new File([blob], 'Demand projection (example).xlsx'));
+      await handleOrders(new File([blob], 'Forecast sheet (example).xlsx'));
     } catch (e) { setError(e.message); setBusy(false); }
   }
 
@@ -62,7 +62,7 @@ export default function ImportTab({ orders, onOrders, onClear }) {
     <div className="space-y-5">
       <Card
         title="Import"
-        subtitle="Load the demand projection. It is read in the browser — nothing is uploaded anywhere. Finished-goods stock comes in live from QuickBase and is subtracted from the forecast."
+        subtitle="Load the forecast / order sheet. It is read in the browser — nothing is uploaded anywhere. Finished-goods stock comes in live from QuickBase and is subtracted from the forecast."
         right={orders.length
           ? <Button variant="danger" onClick={onClear}><Trash2 className="w-4 h-4" />Clear all data</Button>
           : null}
@@ -70,8 +70,8 @@ export default function ImportTab({ orders, onOrders, onClear }) {
         <div className="p-5 space-y-3">
           <DropZone
             icon={FileSpreadsheet}
-            title="Demand Projection"
-            hint="Sap Code, Desc and one column per month (November, December…) in cartons. Columns are matched by name, so extra columns are fine. The older John Poole order sheet still works too."
+            title="Forecast / Order Sheet"
+            hint="Sap Code, Desc and one column per month (November, December…) in cartons. Columns are matched by name, so extra columns are fine. The older weekly format (Week 1–9 in bags) still works too."
             accept=".csv,.xlsx,.xls"
             busy={busy}
             done={orders.length ? `${orders.length} orders loaded` : null}
@@ -81,7 +81,7 @@ export default function ImportTab({ orders, onOrders, onClear }) {
             <span>No file to hand?</span>
             <button onClick={loadExample} disabled={busy}
               className="font-medium text-blue-600 hover:underline disabled:text-slate-400">
-              Load the example demand projection
+              Load the example forecast sheet
             </button>
             <span className="text-slate-400">— the November & December sheet, 43 SAP codes.</span>
             <a href={EXAMPLE_URL} download className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-800">
