@@ -6,23 +6,26 @@ import { shiftsPerDay, DAY_NAMES, SATURDAY, formatDate, addWeeks, addDays } from
 import { Card, Button, Stat, Empty, Notice, fmt, PriorityBadge } from './ui.jsx';
 import PlanEditDialog from './PlanEditDialog.jsx';
 import { downloadCsv } from '../lib/storage.js';
+import { customerLogo } from '../lib/brands.js';
 
-/** Stable colour per SAP so the same product reads the same across the grid. */
-const PALETTE = [
-  'bg-blue-100 text-blue-900 border-blue-200',
-  'bg-emerald-100 text-emerald-900 border-emerald-200',
-  'bg-amber-100 text-amber-900 border-amber-200',
-  'bg-purple-100 text-purple-900 border-purple-200',
-  'bg-rose-100 text-rose-900 border-rose-200',
-  'bg-cyan-100 text-cyan-900 border-cyan-200',
-  'bg-lime-100 text-lime-900 border-lime-200',
-  'bg-orange-100 text-orange-900 border-orange-200',
-];
-const colourFor = (sap) => {
-  let h = 0;
-  for (const c of String(sap)) h = (h * 31 + c.charCodeAt(0)) >>> 0;
-  return PALETTE[h % PALETTE.length];
-};
+/**
+ * One colour per SAP code in the plan. Hues are spread by the golden angle so
+ * no two products share a colour, and a product keeps its colour every week.
+ */
+function sapColours(slots) {
+  const codes = [...new Set(slots.filter((s) => s.type === 'production').map((s) => String(s.sap_code)))].sort();
+  const map = new Map();
+  codes.forEach((code, i) => {
+    const h = Math.round((i * 137.508) % 360);
+    const light = i % 2 ? 88 : 93;
+    map.set(code, {
+      backgroundColor: `hsl(${h} 75% ${light}%)`,
+      borderColor: `hsl(${h} 50% 70%)`,
+      color: `hsl(${h} 65% 20%)`,
+    });
+  });
+  return map;
+}
 
 export default function PlanningTab({ orders, machines, skus, plan, onPlan, onClear }) {
   const [week, setWeek] = useState(0);
@@ -54,6 +57,12 @@ export default function PlanningTab({ orders, machines, skus, plan, onPlan, onCl
     for (const days of Object.values(map)) for (const list of Object.values(days)) list.sort((a, b) => a.shift - b.shift);
     return map;
   }, [plan, week]);
+
+  const colours = useMemo(() => sapColours(plan?.slots || []), [plan]);
+  const customerOf = useMemo(() => {
+    const by = new Map(skus.map((s) => [String(s.sap_code), s.customer]));
+    return (sap) => by.get(String(sap)) || null;
+  }, [skus]);
 
   const stale = !!plan && plan.inputSignature !== planSignature(orders, machines);
 
@@ -148,6 +157,7 @@ export default function PlanningTab({ orders, machines, skus, plan, onPlan, onCl
               </div>
 
               <DayGrid machines={machines} byMachine={byMachine} weekStart={weekStart}
+                       colours={colours} customerOf={customerOf}
                        onDayClick={(machine, dayIndex) =>
                          setOpenDay({ machine_id: machine.id, date: addDays(weekStart, dayIndex) })} />
 
@@ -177,29 +187,37 @@ export default function PlanningTab({ orders, machines, skus, plan, onPlan, onCl
   );
 }
 
-/** Group a day's shifts into what the floor sees: changeovers, then each product with its bags. */
+/** A day's shifts in running order, with back-to-back shifts of the same thing merged. */
 function summariseDay(slots) {
-  const runs = [];
-  let changeover = null;
+  const items = [];
   for (const s of slots) {
-    if (s.type === 'changeover') {
-      changeover = changeover || { width: false, edited: false, shifts: 0 };
-      changeover.width ||= !!s.width_change;
-      changeover.edited ||= !!s.edited;
-      changeover.shifts += 1;
+    const key = s.type === 'changeover' ? 'changeover' : String(s.sap_code);
+    const last = items[items.length - 1];
+    if (last && last.key === key && s.shift === last.lastShift + 1) {
+      last.bags += s.bags; last.shifts += 1; last.lastShift = s.shift;
+      last.edited ||= !!s.edited; last.width ||= !!s.width_change;
       continue;
     }
-    const last = runs[runs.length - 1];
-    if (last && last.sap_code === s.sap_code) {
-      last.bags += s.bags; last.shifts += 1; last.edited ||= !!s.edited;
-    } else {
-      runs.push({ sap_code: s.sap_code, description: s.description, bags: s.bags, shifts: 1, edited: !!s.edited, manual: !!s.manual_sap });
-    }
+    items.push({
+      key, type: s.type, sap_code: s.sap_code, description: s.description,
+      bags: s.bags, shifts: 1, edited: !!s.edited, manual: !!s.manual_sap,
+      width: !!s.width_change, firstShift: s.shift, lastShift: s.shift,
+    });
   }
-  return { runs, changeover };
+  return items;
 }
 
-function DayGrid({ machines, byMachine, weekStart, onDayClick }) {
+const shiftLabel = (it) => (it.firstShift === it.lastShift ? `S${it.firstShift}` : `S${it.firstShift}–${it.lastShift}`);
+
+function BrandIcon({ customer }) {
+  const [failed, setFailed] = useState(false);
+  const src = customerLogo(customer);
+  if (!src || failed) return null;
+  return <img src={src} alt="" title={customer} loading="lazy" onError={() => setFailed(true)}
+              className="w-3.5 h-3.5 rounded-sm bg-white flex-shrink-0" />;
+}
+
+function DayGrid({ machines, byMachine, weekStart, colours, customerOf, onDayClick }) {
   return (
     <div className="border border-slate-200 rounded-lg overflow-x-auto">
       <table className="w-full text-xs border-collapse table-fixed">
@@ -232,31 +250,39 @@ function DayGrid({ machines, byMachine, weekStart, onDayClick }) {
                 );
 
                 const slots = byMachine[machine.id]?.[dayIndex] || [];
-                const { runs, changeover } = summariseDay(slots);
+                const items = summariseDay(slots);
                 const free = shifts - slots.filter((s) => s.shift <= shifts).length;
+                const split = items.length > 1;
 
                 return (
                   <td key={dayIndex} onClick={() => onDayClick(machine, dayIndex)}
                       className={`border-b border-r border-slate-200 p-1 align-top cursor-pointer hover:bg-blue-50/40 ${weekend ? 'bg-slate-50/60' : ''}`}>
                     <div className="space-y-1">
-                      {changeover && (
-                        <div className="flex items-center justify-center gap-1 rounded border border-dashed border-slate-400 bg-white px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-600"
-                             title={`Changeover — ${changeover.shifts} shift${changeover.shifts > 1 ? 's' : ''}`}>
-                          {changeover.width ? 'Width change' : 'Changeover'}
-                          {changeover.edited && <Pencil className="w-2.5 h-2.5 opacity-60" />}
-                        </div>
-                      )}
-                      {runs.map((r, i) => (
-                        <div key={`${r.sap_code}-${i}`}
-                             className={`relative rounded border px-1.5 py-1 leading-tight hover:ring-2 hover:ring-blue-400 ${colourFor(r.sap_code)}`}
-                             title={`${r.sap_code} — ${r.description}\n${fmt(r.bags)} bags over ${r.shifts} shift${r.shifts > 1 ? 's' : ''}${r.manual ? '\nNot on the demand sheet — added by hand' : ''}`}>
-                          {r.edited && <Pencil className="w-2.5 h-2.5 absolute top-0.5 right-0.5 opacity-60" />}
-                          <div className="font-semibold font-mono text-[11px]">{r.sap_code}</div>
-                          <div className="flex justify-between gap-1 text-[10px] opacity-75 tabular-nums">
-                            <span>{fmt(r.bags)}</span><span>{r.shifts}/{shifts}</span>
+                      {items.map((it, i) => (it.type === 'changeover'
+                        ? (
+                          <div key={`chg-${i}`}
+                               className="flex items-center justify-center gap-1 rounded border border-dashed border-slate-400 bg-white px-1 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-600"
+                               title={`${it.description}\n${shiftLabel(it)} — ${it.shifts} shift${it.shifts > 1 ? 's' : ''}`}>
+                            {split && <span className="font-mono font-normal text-slate-400 normal-case">{shiftLabel(it)}</span>}
+                            {it.width ? 'Width change' : 'Changeover'}
+                            {it.edited && <Pencil className="w-2.5 h-2.5 opacity-60" />}
                           </div>
-                        </div>
-                      ))}
+                        ) : (
+                          <div key={`${it.sap_code}-${i}`}
+                               style={colours.get(String(it.sap_code))}
+                               className="relative rounded border px-1.5 py-1 leading-tight hover:ring-2 hover:ring-blue-400"
+                               title={`${it.sap_code} — ${it.description}${customerOf(it.sap_code) ? `\n${customerOf(it.sap_code)}` : ''}\n${fmt(it.bags)} bags, ${shiftLabel(it)}${it.manual ? '\nNot on the demand sheet — added by hand' : ''}`}>
+                            {it.edited && <Pencil className="w-2.5 h-2.5 absolute top-0.5 right-0.5 opacity-60" />}
+                            <div className="flex items-center gap-1">
+                              <BrandIcon customer={customerOf(it.sap_code)} />
+                              <span className="font-semibold font-mono text-[11px]">{it.sap_code}</span>
+                            </div>
+                            <div className="flex justify-between gap-1 text-[10px] opacity-75 tabular-nums">
+                              <span>{fmt(it.bags)}</span>
+                              <span>{split ? shiftLabel(it) : `${it.shifts}/${shifts}`}</span>
+                            </div>
+                          </div>
+                        )))}
                       {free > 0 && (
                         <div className="text-center text-[10px] text-slate-400">
                           {free === shifts ? 'free — click to plan' : `${free} shift${free > 1 ? 's' : ''} free`}
@@ -271,8 +297,9 @@ function DayGrid({ machines, byMachine, weekStart, onDayClick }) {
         </tbody>
       </table>
       <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5 px-3 py-2 bg-slate-50 border-t border-slate-200 text-[11px] text-slate-500">
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm border border-blue-200 bg-blue-100" />SAP code · bags · shifts used that day</span>
-        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm border border-dashed border-slate-400 bg-white" />Changeover that day</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm border border-blue-200 bg-blue-100" />Customer · SAP code · bags · shifts used — one colour per product</span>
+        <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm border border-dashed border-slate-400 bg-white" />Changeover, in the shift it happens</span>
+        <span className="flex items-center gap-1.5 font-mono">S1–S3</span><span className="-ml-4">which shifts, when a day is split</span>
         <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-slate-200" />Machine off that day</span>
         <span className="flex items-center gap-1.5"><Pencil className="w-3 h-3" />Edited by hand</span>
         <span className="ml-auto text-slate-400">Click a day to see its shifts, or to plan a job from that day to any end date.</span>
