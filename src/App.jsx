@@ -9,7 +9,7 @@ import FaqTab from './components/FaqTab.jsx';
 import { load, save, clear, clearAll, isEphemeral } from './lib/storage.js';
 import {
   loadSkuOverrides, saveSkuOverrides, loadMachineOverrides, saveMachineOverrides,
-  mergeSkus, mergeMachines, applyMasterToOrders,
+  mergeSkus, mergeMachines, applyMasterToOrders, applyStockToOrders,
 } from './lib/master.js';
 import { normalisePriority } from './lib/priority.js';
 import { fetchLiveStock } from './lib/liveStock.js';
@@ -35,6 +35,9 @@ export default function App() {
 
   const skus = useMemo(() => mergeSkus(skuOverrides), [skuOverrides]);
   const machines = useMemo(() => mergeMachines(machineOverrides), [machineOverrides]);
+
+  /** Orders as the planner sees them: live QuickBase stock filled in where the sheet has none. */
+  const plannedOrders = useMemo(() => applyStockToOrders(orders, materials), [orders, materials]);
 
   // Restore whatever was here last time.
   useEffect(() => {
@@ -160,20 +163,20 @@ export default function App() {
           <ImportTab orders={orders} onOrders={handleOrders} onClear={handleClearAll} />
         )}
         {tab === 'orders'   && (
-          <OrdersTab orders={orders} sourceName={sources.orders} machines={machines} skus={skus}
+          <OrdersTab orders={plannedOrders} sourceName={sources.orders} machines={machines} skus={skus}
             onPriority={handlePriority} onResetPriorities={handleResetPriorities} onSkuChange={handleSkuChange} />
         )}
         {tab === 'stock'    && <StockTab materials={materials} sourceName={sources.materials} live={live} onRefresh={refreshStock}
             onUpload={handleMaterials} />}
         {tab === 'machines' && (
-          <MachinesTab machines={machines} skus={skus} orders={orders}
+          <MachinesTab machines={machines} skus={skus} orders={plannedOrders}
             onMachineChange={handleMachineChange} onSkuChange={handleSkuChange} />
         )}
         {tab === 'planning' && (
-          <PlanningTab orders={orders} machines={machines} skus={skus} plan={plan}
+          <PlanningTab orders={plannedOrders} machines={machines} skus={skus} plan={plan}
             onPlan={handlePlan} onClear={handleClearPlan} />
         )}
-        {tab === 'faq'      && <FaqTab machines={machines} orders={orders} />}
+        {tab === 'faq'      && <FaqTab machines={machines} orders={plannedOrders} />}
       </main>
     </div>
   );

@@ -85,7 +85,7 @@ export default function PlanningTab({ orders, machines, skus, plan, onPlan, onCl
 
   if (!orders.length) {
     return <Card><Empty icon={BarChart3} title="Nothing to plan yet">
-      Upload the John Poole Order Sheet on the Import tab, then come back and press Generate Plan.
+      Upload the demand projection on the Import tab, then come back and press Generate Plan.
     </Empty></Card>;
   }
 

@@ -83,7 +83,31 @@ export function applyMasterToOrders(orders, skus = mergeSkus()) {
       handle_type: m.handle_type ?? o.handle_type,
       print_colors: m.print_colors ?? o.print_colors,
       roll_width_mm: o.roll_width_mm || m.roll_width_mm || null,
+      assumed_from: m.edited ? null : (m.assumed_from || null),
       in_master: true,
+    };
+  });
+}
+
+/**
+ * Fill in finished-goods stock from live QuickBase when the sheet itself has
+ * no stock column (the demand projection does not). Free stock (FStk) in
+ * cartons is what counts; blocked and committed cartons cannot ship.
+ */
+export function applyStockToOrders(orders, materials) {
+  const free = new Map((materials || []).map((m) => [String(m.sap_code), m]));
+  return orders.map((o) => {
+    if (!o.stock_unknown) return o;
+    const m = free.get(String(o.sap_code));
+    const cartons = m && /^(KAR|CAR|CTN)$/i.test(m.unit || 'KAR') ? Math.max(0, m.free_stock) : 0;
+    const stockBags = cartons * (o.bags_per_carton || 250);
+    return {
+      ...o,
+      stock_cartons: cartons,
+      stock_bags: stockBags,
+      stock_source: m ? 'quickbase' : null,
+      cover_weeks: o.weekly_bags > 0 ? Math.round((stockBags / o.weekly_bags) * 10) / 10 : 99,
+      net_bags_required: Math.max(0, o.total_bags_required - stockBags),
     };
   });
 }

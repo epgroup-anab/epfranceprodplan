@@ -3,7 +3,7 @@ import { Upload, FileSpreadsheet, CheckCircle2, Trash2, Download } from 'lucide-
 import { parseOrderSheet } from '../lib/parseOrders.js';
 import { Card, Button, Notice } from './ui.jsx';
 
-const EXAMPLE_URL = '/examples/JohnPoole_OrderSheet_example.xlsx';
+const EXAMPLE_URL = '/examples/Demand_projection_example.xlsx';
 
 function DropZone({ title, hint, accept, onFile, busy, done, icon: Icon }) {
   const input = useRef(null);
@@ -54,7 +54,7 @@ export default function ImportTab({ orders, onOrders, onClear }) {
       const res = await fetch(EXAMPLE_URL);
       if (!res.ok) throw new Error(`the example file could not be downloaded (${res.status}).`);
       const blob = await res.blob();
-      await handleOrders(new File([blob], 'JohnPoole_OrderSheet_example.xlsx'));
+      await handleOrders(new File([blob], 'Demand projection (example).xlsx'));
     } catch (e) { setError(e.message); setBusy(false); }
   }
 
@@ -62,7 +62,7 @@ export default function ImportTab({ orders, onOrders, onClear }) {
     <div className="space-y-5">
       <Card
         title="Import"
-        subtitle="Load the week's order sheet. It is read in the browser — nothing is uploaded anywhere. Stock comes in live from QuickBase on the Live Stock Data tab."
+        subtitle="Load the demand projection. It is read in the browser — nothing is uploaded anywhere. Finished-goods stock comes in live from QuickBase and is subtracted from the forecast."
         right={orders.length
           ? <Button variant="danger" onClick={onClear}><Trash2 className="w-4 h-4" />Clear all data</Button>
           : null}
@@ -70,20 +70,20 @@ export default function ImportTab({ orders, onOrders, onClear }) {
         <div className="p-5 space-y-3">
           <DropZone
             icon={FileSpreadsheet}
-            title="John Poole Order Sheet"
-            hint="Excel or CSV. Columns are matched by name, so extra columns are fine."
+            title="Demand Projection"
+            hint="Sap Code, Desc and one column per month (November, December…) in cartons. Columns are matched by name, so extra columns are fine. The older John Poole order sheet still works too."
             accept=".csv,.xlsx,.xls"
             busy={busy}
             done={orders.length ? `${orders.length} orders loaded` : null}
             onFile={handleOrders}
           />
           <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-slate-500">
-            <span>No sheet to hand?</span>
+            <span>No file to hand?</span>
             <button onClick={loadExample} disabled={busy}
               className="font-medium text-blue-600 hover:underline disabled:text-slate-400">
-              Load the example order sheet
+              Load the example demand projection
             </button>
-            <span className="text-slate-400">— 42 lines, including the SH-B and SH-C square-bottom products.</span>
+            <span className="text-slate-400">— the November & December sheet, 43 SAP codes.</span>
             <a href={EXAMPLE_URL} download className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-800">
               <Download className="w-3.5 h-3.5" />download it
             </a>

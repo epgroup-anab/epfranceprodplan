@@ -1334,5 +1334,168 @@ export const SKUS = [
     "compatible_machines": ["MC-NL1", "MC-NL2", "MC-5", "MC-1"],
     "monthly_requirement_cartons": 0,
     "weekly_usage_cartons": 0
+  },
+  {
+    "sap_code": "37649",
+    "description": "CELIO - SAC GM FSC2",
+    "customer": "Célio",
+    "roll_width_mm": 1250,
+    "gsm": 100,
+    "bags_per_carton": 125,
+    "print_colors": 2,
+    "handle_type": "TWISTED",
+    "paper_sap_code": null,
+    "carton_sap_code": null,
+    "primary_machine": "MC-6",
+    "primary_machine_only": false,
+    "compatible_machines": [
+      "MC-6"
+    ],
+    "monthly_requirement_cartons": 0,
+    "weekly_usage_cartons": 0,
+    "assumed_from": "37393 Intersport GM"
+  },
+  {
+    "sap_code": "37650",
+    "description": "CELIO - SAC MM FSC2",
+    "customer": "Célio",
+    "roll_width_mm": 1050,
+    "gsm": 85,
+    "bags_per_carton": 175,
+    "print_colors": 2,
+    "handle_type": "TWISTED",
+    "paper_sap_code": null,
+    "carton_sap_code": null,
+    "primary_machine": "MC-6",
+    "primary_machine_only": false,
+    "compatible_machines": [
+      "MC-6"
+    ],
+    "monthly_requirement_cartons": 0,
+    "weekly_usage_cartons": 0,
+    "assumed_from": "36020 Célio MM"
+  },
+  {
+    "sap_code": "37651",
+    "description": "CELIO - SAC PM FSC2",
+    "customer": "Célio",
+    "roll_width_mm": 790,
+    "gsm": 85,
+    "bags_per_carton": 200,
+    "print_colors": 2,
+    "handle_type": "TWISTED",
+    "paper_sap_code": null,
+    "carton_sap_code": null,
+    "primary_machine": "MC-6",
+    "primary_machine_only": false,
+    "compatible_machines": [
+      "MC-6"
+    ],
+    "monthly_requirement_cartons": 0,
+    "weekly_usage_cartons": 0,
+    "assumed_from": "35780 Kiabi petit"
+  },
+  {
+    "sap_code": "37680",
+    "description": "BLACKSTORE - SAC PM FSC2",
+    "customer": "Blackstore",
+    "roll_width_mm": 790,
+    "gsm": 85,
+    "bags_per_carton": 300,
+    "print_colors": 1,
+    "handle_type": "TWISTED",
+    "paper_sap_code": null,
+    "carton_sap_code": null,
+    "primary_machine": "MC-6",
+    "primary_machine_only": false,
+    "compatible_machines": [
+      "MC-6"
+    ],
+    "monthly_requirement_cartons": 0,
+    "weekly_usage_cartons": 0,
+    "assumed_from": "35780 Kiabi petit"
+  },
+  {
+    "sap_code": "37681",
+    "description": "BLACKSTORE - SAC MM FSC2",
+    "customer": "Blackstore",
+    "roll_width_mm": 910,
+    "gsm": 90,
+    "bags_per_carton": 200,
+    "print_colors": 1,
+    "handle_type": "TWISTED",
+    "paper_sap_code": null,
+    "carton_sap_code": null,
+    "primary_machine": "MC-6",
+    "primary_machine_only": false,
+    "compatible_machines": [
+      "MC-6"
+    ],
+    "monthly_requirement_cartons": 0,
+    "weekly_usage_cartons": 0,
+    "assumed_from": "37392 Intersport MM"
+  },
+  {
+    "sap_code": "37682",
+    "description": "BLACKSTORE - SAC GM FSC2",
+    "customer": "Blackstore",
+    "roll_width_mm": 1250,
+    "gsm": 100,
+    "bags_per_carton": 150,
+    "print_colors": 1,
+    "handle_type": "TWISTED",
+    "paper_sap_code": null,
+    "carton_sap_code": null,
+    "primary_machine": "MC-6",
+    "primary_machine_only": false,
+    "compatible_machines": [
+      "MC-6"
+    ],
+    "monthly_requirement_cartons": 0,
+    "weekly_usage_cartons": 0,
+    "assumed_from": "37393 Intersport GM"
+  },
+  {
+    "sap_code": "37731",
+    "description": "SAC KRAFT F AND L DRIVE FSC2",
+    "customer": "",
+    "roll_width_mm": 990,
+    "gsm": 85,
+    "bags_per_carton": 250,
+    "print_colors": 1,
+    "handle_type": "FLAT",
+    "paper_sap_code": null,
+    "carton_sap_code": null,
+    "primary_machine": "MC-NL2",
+    "primary_machine_only": false,
+    "compatible_machines": [
+      "MC-NL2",
+      "MC-2",
+      "MC-4"
+    ],
+    "monthly_requirement_cartons": 0,
+    "weekly_usage_cartons": 0,
+    "assumed_from": "37285 U Drive"
+  },
+  {
+    "sap_code": "37756",
+    "description": "SAC CABAS PERMANENT 2026 FSC2",
+    "customer": "",
+    "roll_width_mm": 990,
+    "gsm": 85,
+    "bags_per_carton": 250,
+    "print_colors": 2,
+    "handle_type": "FLAT",
+    "paper_sap_code": null,
+    "carton_sap_code": null,
+    "primary_machine": "MC-NL2",
+    "primary_machine_only": false,
+    "compatible_machines": [
+      "MC-NL2",
+      "MC-NL1"
+    ],
+    "monthly_requirement_cartons": 0,
+    "weekly_usage_cartons": 0,
+    "assumed_from": "35426 Naturalia permanent"
   }
 ];

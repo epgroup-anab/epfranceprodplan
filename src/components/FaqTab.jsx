@@ -38,13 +38,16 @@ export default function FaqTab({ machines, orders }) {
         <div className="px-5 pb-5 space-y-2.5">
           <Section id="what" open={open} toggle={toggle} title="What the tool actually does">
             <P>
-              You give it two files and it gives you a shift-by-shift schedule for all ten
-              machines, running as many weeks forward as it takes to make every bag on the order sheet.
+              You give it the demand projection and it gives you a shift-by-shift schedule for all ten
+              machines, running as many weeks forward as it takes to make every bag on the forecast.
             </P>
             <List items={[
-              <><B>Order sheet</B> (John Poole&apos;s OrderSheet, csv or xlsx) — one row per SAP code, with
-                priority, weekly demand in bags, current stock and bags per carton. Columns are matched
-                by name, so the sheet can be reordered without breaking the import.</>,
+              <><B>Demand projection</B> (xlsx or csv) — one row per SAP code with the sales person, the
+                description and a column per month (for example November and December) in cartons.
+                Cartons are turned into bags with each product&apos;s bags per carton. &quot;MTO&quot; and
+                &quot;N/A&quot; count as zero. The sheet has no stock or priority column: free finished-goods
+                stock is taken live from QuickBase and subtracted, and every line starts at priority 3
+                until it is changed on the Orders tab. The older John Poole order sheet still imports.</>,
               <><B>Stock</B> (QuickBase Materials Plant 9000) — free stock of paper, handles, patches,
                 cartons, ink and glue. Read live from QuickBase when the connection is set up (SAP updates
                 it around 11:00 and 22:00–23:00), otherwise from an uploaded export. This is shown on the
@@ -136,7 +139,7 @@ export default function FaqTab({ machines, orders }) {
 
           <Section id="priority" open={open} toggle={toggle} title="What the priority numbers mean">
             <P>
-              Priority is a plain number from 1 to 5 on the order sheet. It replaced the old
+              Priority is a plain number from 1 to 5, set on the Orders tab (or read from a Priority column if the sheet has one). It replaced the old
               NO&nbsp;COMPROMISE / VERY&nbsp;HIGH text tags, which were hard to sort and easy to mistype.
               Old sheets using those words still import — the words are mapped onto numbers.
             </P>
@@ -303,7 +306,7 @@ export default function FaqTab({ machines, orders }) {
 
           <Section id="tips" open={open} toggle={toggle} title="Tips for using it well">
             <List items={[
-              <>Stock loads from QuickBase by itself, so only the order sheet needs uploading. A new order sheet clears the
+              <>Stock loads from QuickBase by itself, so only the demand projection needs uploading. A new sheet clears the
                 existing plan on purpose, because the old plan no longer matches the demand.</>,
               <>Read the notices under the grid before anything else. Spill-over, unschedulable SKUs and
                 master data conflicts are all reported there.</>,

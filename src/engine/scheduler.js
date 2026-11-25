@@ -11,7 +11,7 @@ import { prioritySignature } from '../lib/priority.js';
 export function planSignature(orders = [], machines = []) {
   const compat = [...orders]
     .sort((a, b) => String(a.sap_code).localeCompare(String(b.sap_code)))
-    .map((o) => `${o.sap_code}:${(o.compatible_machines || []).join('+')}:${o.primary_machine || ''}`)
+    .map((o) => `${o.sap_code}:${(o.compatible_machines || []).join('+')}:${o.primary_machine || ''}:${o.net_bags_required}`)
     .join(';');
   const shifts = machines
     .map((m) => `${m.id}:${m.status}:${m.shifts_mon_thu}/${m.shifts_fri}/${m.shifts_sat ?? 0}/${m.shifts_sun ?? 0}`)
@@ -106,6 +106,10 @@ export function validateOrders(orders, machines) {
     if (order.handle_type && listed.every((m) => m.handle_type && m.handle_type !== order.handle_type)) {
       warnings.push({ sap_code: order.sap_code, severity: 'warning',
         message: `${order.sap_code} is a ${order.handle_type} product but its listed machines are ${[...new Set(listed.map((m) => m.handle_type))].join('/')}. Scheduled anyway — confirm the machine list.` });
+    }
+    if (order.assumed_from) {
+      warnings.push({ sap_code: order.sap_code, severity: 'warning',
+        message: `${order.sap_code} (${order.description}) is new to the master. Its machines (${listed.map((m) => m.id).join(', ')}) were copied from ${order.assumed_from} — confirm with Habeeb, or change them on the Orders tab.` });
     }
   }
   return warnings;
@@ -307,7 +311,7 @@ export function generatePlan(orders, machines, options = {}) {
     unplaced: result.unplaced, overflow: result.overflow, orderStatus,
     dataWarnings: [
       ...validateOrders(planable, active),
-      ...(orders.some((o) => o.stock_unknown) ? [{
+      ...(orders.some((o) => o.stock_unknown && o.stock_source !== 'quickbase') ? [{
         severity: 'warning', sap_code: '',
         message: 'This sheet has no finished-goods stock column, so stock on hand was treated as zero and the full forecast was scheduled.',
       }] : []),

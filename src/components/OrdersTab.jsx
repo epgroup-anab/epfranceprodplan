@@ -43,7 +43,7 @@ export default function OrdersTab({ orders, sourceName, machines, skus, onPriori
 
   if (!orders.length) {
     return <Card><Empty icon={ClipboardList} title="No orders yet">
-      Upload the John Poole Order Sheet on the Import tab and the extracted orders appear here.
+      Upload the demand projection on the Import tab and the extracted orders appear here.
     </Empty></Card>;
   }
 
@@ -116,7 +116,10 @@ export default function OrdersTab({ orders, sourceName, machines, skus, onPriori
               </Td>
               <Td className="text-right tabular-nums">{o.roll_width_mm ? `${o.roll_width_mm}mm` : '—'}</Td>
               <Td className="text-right tabular-nums">{fmt(o.monthly_requirement_cartons)}</Td>
-              <Td className="text-right tabular-nums">{fmt(o.stock_cartons)}</Td>
+              <Td className="text-right tabular-nums" title={o.stock_source === 'quickbase' ? 'Free stock in cartons, live from QuickBase Plant 9000' : o.stock_unknown ? 'Not found in QuickBase — treated as zero' : 'From the sheet'}>
+                {fmt(o.stock_cartons)}
+                {o.stock_source === 'quickbase' && <span className="ml-1 text-[9px] font-semibold text-emerald-600 align-middle">QB</span>}
+              </Td>
               <Td className={`text-right tabular-nums ${coverTone(o.cover_weeks)}`}>
                 {o.cover_weeks >= 99 ? '—' : `${o.cover_weeks}w`}
               </Td>

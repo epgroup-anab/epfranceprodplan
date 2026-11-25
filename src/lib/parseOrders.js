@@ -76,7 +76,7 @@ export function parseOrderGrid(grid, skus = mergeSkus()) {
   const at = headerIndex(headerRow);
   const cSap = at('SAP Code', 'SAP CODE', 'Sap Code', 'Material', 'Mat');
   if (cSap === -1) {
-    throw new Error('No "SAP Code" column found. Expected a John Poole order sheet or a demand projection.');
+    throw new Error('No "SAP Code" column found. Expected the demand projection (or a John Poole order sheet).');
   }
   const cPriority = at('Priority');
   const cName     = at('Product Name', 'Name', 'Description', 'Desc', 'Des');
@@ -148,6 +148,7 @@ export function parseOrderGrid(grid, skus = mergeSkus()) {
       week_bags: weekBags,
       total_bags_required: months.length ? totalBags : (totalBags || Math.round(monthlyCartons * bagsPerCarton)),
       weekly_bags: weeklyBags,
+      assumed_from: master?.assumed_from || null,
       in_master: !!master,
     });
   }
@@ -161,7 +162,7 @@ export function parseOrderGrid(grid, skus = mergeSkus()) {
   }
   if (cStock === -1) {
     warnings.unshift(
-      'No finished-goods stock column on this sheet. The plan makes the full forecast and does not subtract stock already on hand.',
+      'No finished-goods stock column on this sheet, so free stock is taken live from QuickBase (Plant 9000, in cartons) and subtracted from the forecast.',
     );
   }
   if (orders.every((o) => o.total_bags_required === 0)) {
