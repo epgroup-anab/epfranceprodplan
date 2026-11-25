@@ -1,14 +1,19 @@
-import React, { useMemo, useState } from 'react';
-import { Search, ClipboardList, ArrowUpDown, RotateCcw } from 'lucide-react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Search, ClipboardList, ArrowUpDown, RotateCcw, ChevronDown, Pencil } from 'lucide-react';
 import { Card, Empty, TableWrap, Th, Td, Button, Notice, fmt } from './ui.jsx';
 import { PRIORITY_LEVELS, priorityMeta } from '../lib/priority.js';
+import { machineTogglePatch } from '../lib/master.js';
 
 const coverTone = (c) =>
   c < 1 ? 'text-red-600 font-semibold'
   : c < 2 ? 'text-amber-600 font-medium'
   : 'text-slate-600';
 
-export default function OrdersTab({ orders, sourceName, onPriority, onResetPriorities }) {
+export default function OrdersTab({ orders, sourceName, machines, skus, onPriority, onResetPriorities, onSkuChange }) {
+  const editedSkus = useMemo(
+    () => new Set(skus.filter((s) => s.edited).map((s) => String(s.sap_code))),
+    [skus],
+  );
   const [query, setQuery] = useState('');
   const [priority, setPriority] = useState('all');
   const [sort, setSort] = useState({ key: 'priority', dir: 1 });
@@ -104,10 +109,10 @@ export default function OrdersTab({ orders, sourceName, onPriority, onResetPrior
                 <PriorityCell order={o} onChange={(p) => onPriority(o.sap_code, p)} />
               </Td>
               <Td className="max-w-[22rem] truncate" title={o.description}>{o.description}</Td>
-              <Td className="text-xs text-slate-500">
-                {o.compatible_machines.length
-                  ? o.compatible_machines.join(', ')
-                  : <span className="text-red-600 font-medium">none in master</span>}
+              <Td className="text-xs">
+                <MachinesCell order={o} machines={machines} edited={editedSkus.has(String(o.sap_code))}
+                  onChange={(machineId) => onSkuChange(o.sap_code, machineTogglePatch(o, machineId, machines))}
+                  onReset={() => onSkuChange(o.sap_code, null)} />
               </Td>
               <Td className="text-right tabular-nums">{o.roll_width_mm ? `${o.roll_width_mm}mm` : '—'}</Td>
               <Td className="text-right tabular-nums">{fmt(o.monthly_requirement_cartons)}</Td>
@@ -136,16 +141,19 @@ function PriorityCell({ order, onChange }) {
   const meta = priorityMeta(order.priority);
   return (
     <div className="flex items-center gap-1.5">
-      <select
-        value={order.priority}
-        onChange={(e) => onChange(Number(e.target.value))}
-        title={`${meta.value} — ${meta.name}: ${meta.blurb}\nChange this to move the order up or down the queue.`}
-        className={`appearance-none cursor-pointer rounded pl-2 pr-2 py-0.5 text-xs font-semibold border-0 focus:outline-none focus:ring-2 focus:ring-blue-400 ${meta.badge}`}
-      >
-        {PRIORITY_LEVELS.map((p) => (
-          <option key={p.value} value={p.value} className="bg-white text-slate-800">{p.value} {p.name}</option>
-        ))}
-      </select>
+      <div className="relative inline-flex">
+        <select
+          value={order.priority}
+          onChange={(e) => onChange(Number(e.target.value))}
+          title={`${meta.value} — ${meta.name}: ${meta.blurb}\nChange this to move the order up or down the queue.`}
+          className={`appearance-none cursor-pointer rounded pl-2 pr-6 py-0.5 text-xs font-semibold border-0 focus:outline-none focus:ring-2 focus:ring-blue-400 ${meta.badge}`}
+        >
+          {PRIORITY_LEVELS.map((p) => (
+            <option key={p.value} value={p.value} className="bg-white text-slate-800">{p.value} {p.name}</option>
+          ))}
+        </select>
+        <ChevronDown className="w-3 h-3 absolute right-1.5 top-1/2 -translate-y-1/2 pointer-events-none opacity-70" />
+      </div>
       {manual && (
         <span className="text-[10px] font-medium text-blue-600"
               title={`The sheet said ${order.priority_original}. Changed by hand.`}>
@@ -153,5 +161,75 @@ function PriorityCell({ order, onChange }) {
         </span>
       )}
     </div>
+  );
+}
+
+/**
+ * The machines an SAP code may run on, editable in place. Ticking a machine
+ * here is the same edit as on the Machines tab — saved in this browser and
+ * used by the next plan.
+ */
+function MachinesCell({ order, machines, edited, onChange, onReset }) {
+  const [open, setOpen] = useState(null);
+  const button = useRef(null);
+  const panel = useRef(null);
+  const list = order.compatible_machines || [];
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const close = (e) => {
+      if (!panel.current?.contains(e.target) && !button.current?.contains(e.target)) setOpen(null);
+    };
+    const shut = () => setOpen(null);
+    document.addEventListener('mousedown', close);
+    window.addEventListener('scroll', shut, true);
+    return () => { document.removeEventListener('mousedown', close); window.removeEventListener('scroll', shut, true); };
+  }, [open]);
+
+  const toggleOpen = () => {
+    if (open) return setOpen(null);
+    const r = button.current.getBoundingClientRect();
+    const below = window.innerHeight - r.bottom > 180;
+    setOpen({ left: Math.min(r.left, window.innerWidth - 300), top: below ? r.bottom + 4 : undefined, bottom: below ? undefined : window.innerHeight - r.top + 4 });
+  };
+
+  return (
+    <>
+      <button ref={button} onClick={toggleOpen}
+        title="Change which machines can run this SAP code"
+        className="group inline-flex items-center gap-1.5 rounded px-1.5 py-0.5 -mx-1.5 text-left hover:bg-blue-50">
+        {list.length
+          ? <span className="text-slate-500 group-hover:text-slate-800">{list.join(', ')}</span>
+          : <span className="text-red-600 font-medium">none — add a machine</span>}
+        {edited && <span className="text-[10px] font-medium text-blue-600">edited</span>}
+        <Pencil className="w-3 h-3 text-slate-300 group-hover:text-blue-600" />
+      </button>
+      {open && (
+        <div ref={panel} style={{ position: 'fixed', left: open.left, top: open.top, bottom: open.bottom }}
+             className="z-40 w-[18rem] rounded-lg border border-slate-200 bg-white shadow-lg p-3">
+          <div className="text-xs font-medium text-slate-700">Machines for {order.sap_code}</div>
+          <div className="text-[11px] text-slate-400 mb-2">Click to allow or remove. Re-plan to apply.</div>
+          <div className="flex flex-wrap gap-1">
+            {machines.map((m) => {
+              const on = list.includes(m.id);
+              return (
+                <button key={m.id} onClick={() => onChange(m.id)}
+                  className={`px-1.5 py-0.5 rounded border text-[11px] font-medium ${on
+                    ? 'bg-blue-600 border-blue-600 text-white'
+                    : 'bg-white border-slate-200 text-slate-400 hover:border-slate-400 hover:text-slate-700'}`}>
+                  {m.id}
+                </button>
+              );
+            })}
+          </div>
+          {edited && (
+            <button onClick={() => { onReset(); setOpen(null); }}
+              className="mt-2 inline-flex items-center gap-1 text-[11px] text-slate-500 hover:text-red-600">
+              <RotateCcw className="w-3 h-3" />Put back the built-in machines
+            </button>
+          )}
+        </div>
+      )}
+    </>
   );
 }

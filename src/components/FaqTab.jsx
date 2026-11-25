@@ -48,7 +48,7 @@ export default function FaqTab({ machines, orders }) {
               <><B>Stock</B> (QuickBase Materials Plant 9000) — free stock of paper, handles, patches,
                 cartons, ink and glue. Read live from QuickBase when the connection is set up (SAP updates
                 it around 11:00 and 22:00–23:00), otherwise from an uploaded export. This is shown on the
-                Stock tab for reference; it does not currently block a run from being scheduled.</>,
+                Live Stock Data tab for reference; it does not currently block a run from being scheduled.</>,
               <><B>SKU master</B> (built into the tool) — for each SAP code: roll width, gsm, bags per carton,
                 print colours, handle type, and the list of machines that SKU can run on.</>,
               <><B>Machine master</B> (built into the tool) — capacity per shift, efficiency, print colour
@@ -164,8 +164,8 @@ export default function FaqTab({ machines, orders }) {
             <List items={[
               <><B>The SKU master&apos;s machine list is the authority.</B> Each SAP code carries a list of
                 machines it has genuinely run on. The planner will not put an order anywhere else on its own.
-                The list can be edited on the Machines tab: tick a machine against an SAP code to let the
-                planner use it, or add an SAP code that is not in the master yet. Edits are saved in this
+                The list can be edited on the Orders tab (click the machines on any row) or on the Machines
+                tab: tick a machine against an SAP code to let the planner use it, or add an SAP code that is not in the master yet. Edits are saved in this
                 browser and a Reset puts the built-in list back.</>,
               <><B>Primary machine.</B> Where a SKU has a preferred machine it is tried first, then the rest
                 of the list in order. This keeps products on the machine the operators know.</>,
@@ -286,7 +286,7 @@ export default function FaqTab({ machines, orders }) {
           <Section id="limits" open={open} toggle={toggle} title="What the plan does not know">
             <P>Worth being honest about, because these are the gaps you fill in the meeting.</P>
             <List items={[
-              <><B>Material availability does not block a run.</B> The Stock tab flags paper reels at zero
+              <><B>Material availability does not block a run.</B> The Live Stock Data tab flags paper reels at zero
                 free stock, but the planner will still schedule a SKU that needs one. Check the zero-stock
                 warning against week 1 before committing.</>,
               <><B>No delivery dates.</B> Priority and weeks of cover stand in for a due date. An order
@@ -303,7 +303,7 @@ export default function FaqTab({ machines, orders }) {
 
           <Section id="tips" open={open} toggle={toggle} title="Tips for using it well">
             <List items={[
-              <>Upload the order sheet first, then the materials file. A new order sheet clears the
+              <>Stock loads from QuickBase by itself, so only the order sheet needs uploading. A new order sheet clears the
                 existing plan on purpose, because the old plan no longer matches the demand.</>,
               <>Read the notices under the grid before anything else. Spill-over, unschedulable SKUs and
                 master data conflicts are all reported there.</>,

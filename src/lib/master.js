@@ -47,6 +47,28 @@ export function mergeMachines(overrides = loadMachineOverrides()) {
   return MACHINES.map((m) => (overrides[m.id] ? { ...m, ...overrides[m.id], edited: true } : m));
 }
 
+/**
+ * The change to save when a machine is ticked or unticked for an SAP code.
+ * Machine order follows the plant list; a removed first choice falls to the
+ * next machine; a product locked to one machine is unlocked once it has more.
+ * `sku` can be an order row for a code that is not in the master yet.
+ */
+export function machineTogglePatch(sku, machineId, machines) {
+  const list = sku.compatible_machines || [];
+  const next = list.includes(machineId) ? list.filter((id) => id !== machineId) : [...list, machineId];
+  const patch = { compatible_machines: machines.map((m) => m.id).filter((id) => next.includes(id)) };
+  if (!next.includes(sku.primary_machine)) patch.primary_machine = next[0] ?? null;
+  if (next.length > 1 && sku.primary_machine_only) patch.primary_machine_only = false;
+  if (sku.in_master === false) {
+    Object.assign(patch, {
+      description: sku.description,
+      roll_width_mm: sku.roll_width_mm ?? null,
+      bags_per_carton: sku.bags_per_carton ?? 250,
+    });
+  }
+  return patch;
+}
+
 /** Push the current master onto orders already loaded from a sheet. */
 export function applyMasterToOrders(orders, skus = mergeSkus()) {
   const by = new Map(skus.map((s) => [String(s.sap_code), s]));

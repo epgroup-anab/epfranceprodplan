@@ -3,6 +3,7 @@ import { Zap, Palette, Clock, Layers, Gauge, Lock, RotateCcw, Search, Plus } fro
 import { Card, Button, Field, Notice, fmt, inputClass } from './ui.jsx';
 import { bagsPerShift, shiftsPerWeek, weeklyCapacity } from '../engine/capacity.js';
 import { PINNED_MACHINES } from '../engine/scheduler.js';
+import { machineTogglePatch } from '../lib/master.js';
 
 function handleTone(type) {
   if (type === 'TWISTED') return 'bg-amber-100 text-amber-700';
@@ -131,14 +132,7 @@ function Compatibility({ machines, skus, orders, onSkuChange }) {
     });
   }, [skus, query, sheetOnly, onSheet]);
 
-  const toggle = (sku, machineId) => {
-    const list = sku.compatible_machines || [];
-    const next = list.includes(machineId) ? list.filter((id) => id !== machineId) : [...list, machineId];
-    const patch = { compatible_machines: machines.map((m) => m.id).filter((id) => next.includes(id)) };
-    if (!next.includes(sku.primary_machine)) { patch.primary_machine = next[0] ?? null; }
-    if (next.length > 1 && sku.primary_machine_only) patch.primary_machine_only = false;
-    onSkuChange(sku.sap_code, patch);
-  };
+  const toggle = (sku, machineId) => onSkuChange(sku.sap_code, machineTogglePatch(sku, machineId, machines));
 
   return (
     <Card

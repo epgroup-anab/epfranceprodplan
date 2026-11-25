@@ -18,7 +18,7 @@ import { fmt } from './components/ui.jsx';
 const TABS = [
   { id: 'import',   label: 'Import',   icon: Upload },
   { id: 'orders',   label: 'Orders',   icon: ClipboardList },
-  { id: 'stock',    label: 'Stock',    icon: Package },
+  { id: 'stock',    label: 'Live Stock Data', icon: Package },
   { id: 'machines', label: 'Machines', icon: Settings },
   { id: 'planning', label: 'Planning', icon: BarChart3 },
   { id: 'faq',      label: 'FAQ',      icon: HelpCircle },
@@ -117,6 +117,7 @@ export default function App() {
     clearAll();
     setOrders([]); setMaterials([]); setPlan(null); setSources({});
     setTab('import');
+    refreshStock();
   };
 
   return (
@@ -156,14 +157,14 @@ export default function App() {
 
       <main className="flex-1 max-w-[1600px] w-full mx-auto px-6 py-6">
         {tab === 'import' && (
-          <ImportTab orders={orders} materials={materials}
-            onOrders={handleOrders} onMaterials={handleMaterials} onClear={handleClearAll} />
+          <ImportTab orders={orders} onOrders={handleOrders} onClear={handleClearAll} />
         )}
         {tab === 'orders'   && (
-          <OrdersTab orders={orders} sourceName={sources.orders}
-            onPriority={handlePriority} onResetPriorities={handleResetPriorities} />
+          <OrdersTab orders={orders} sourceName={sources.orders} machines={machines} skus={skus}
+            onPriority={handlePriority} onResetPriorities={handleResetPriorities} onSkuChange={handleSkuChange} />
         )}
-        {tab === 'stock'    && <StockTab materials={materials} sourceName={sources.materials} live={live} onRefresh={refreshStock} />}
+        {tab === 'stock'    && <StockTab materials={materials} sourceName={sources.materials} live={live} onRefresh={refreshStock}
+            onUpload={handleMaterials} />}
         {tab === 'machines' && (
           <MachinesTab machines={machines} skus={skus} orders={orders}
             onMachineChange={handleMachineChange} onSkuChange={handleSkuChange} />

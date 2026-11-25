@@ -1,8 +1,9 @@
 import React, { useRef, useState } from 'react';
-import { Upload, FileSpreadsheet, Package, CheckCircle2, Trash2 } from 'lucide-react';
+import { Upload, FileSpreadsheet, CheckCircle2, Trash2, Download } from 'lucide-react';
 import { parseOrderSheet } from '../lib/parseOrders.js';
-import { parseMaterialsSheet } from '../lib/parseMaterials.js';
-import { Card, Button, Notice, fmt } from './ui.jsx';
+import { Card, Button, Notice } from './ui.jsx';
+
+const EXAMPLE_URL = '/examples/JohnPoole_OrderSheet_example.xlsx';
 
 function DropZone({ title, hint, accept, onFile, busy, done, icon: Icon }) {
   const input = useRef(null);
@@ -32,58 +33,61 @@ function DropZone({ title, hint, accept, onFile, busy, done, icon: Icon }) {
   );
 }
 
-export default function ImportTab({ orders, materials, onOrders, onMaterials, onClear }) {
-  const [busy, setBusy] = useState(null);
+export default function ImportTab({ orders, onOrders, onClear }) {
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState(null);
   const [warnings, setWarnings] = useState([]);
 
   async function handleOrders(file) {
-    setBusy('orders'); setError(null); setWarnings([]);
+    setBusy(true); setError(null); setWarnings([]);
     try {
       const { orders: parsed, warnings: w } = await parseOrderSheet(file);
       onOrders(parsed, file.name);
       setWarnings(w);
     } catch (e) { setError(e.message); }
-    setBusy(null);
+    setBusy(false);
   }
 
-  async function handleMaterials(file) {
-    setBusy('materials'); setError(null);
+  async function loadExample() {
+    setBusy(true); setError(null);
     try {
-      const { materials: parsed } = await parseMaterialsSheet(file);
-      onMaterials(parsed, file.name);
-    } catch (e) { setError(e.message); }
-    setBusy(null);
+      const res = await fetch(EXAMPLE_URL);
+      if (!res.ok) throw new Error(`the example file could not be downloaded (${res.status}).`);
+      const blob = await res.blob();
+      await handleOrders(new File([blob], 'JohnPoole_OrderSheet_example.xlsx'));
+    } catch (e) { setError(e.message); setBusy(false); }
   }
 
   return (
     <div className="space-y-5">
       <Card
         title="Import"
-        subtitle="Load the week's order sheet and today's stock position. Both are read in the browser — nothing is uploaded anywhere."
-        right={(orders.length || materials.length)
+        subtitle="Load the week's order sheet. It is read in the browser — nothing is uploaded anywhere. Stock comes in live from QuickBase on the Live Stock Data tab."
+        right={orders.length
           ? <Button variant="danger" onClick={onClear}><Trash2 className="w-4 h-4" />Clear all data</Button>
           : null}
       >
-        <div className="grid md:grid-cols-2 gap-5 p-5">
+        <div className="p-5 space-y-3">
           <DropZone
             icon={FileSpreadsheet}
             title="John Poole Order Sheet"
             hint="Excel or CSV. Columns are matched by name, so extra columns are fine."
             accept=".csv,.xlsx,.xls"
-            busy={busy === 'orders'}
+            busy={busy}
             done={orders.length ? `${orders.length} orders loaded` : null}
             onFile={handleOrders}
           />
-          <DropZone
-            icon={Package}
-            title="Stock — QuickBase Materials Plant 9000"
-            hint="The Plant 9000 export. Free stock (FStk) is what the planner reads."
-            accept=".csv,.xlsx,.xls"
-            busy={busy === 'materials'}
-            done={materials.length ? `${fmt(materials.length)} materials loaded` : null}
-            onFile={handleMaterials}
-          />
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-sm text-slate-500">
+            <span>No sheet to hand?</span>
+            <button onClick={loadExample} disabled={busy}
+              className="font-medium text-blue-600 hover:underline disabled:text-slate-400">
+              Load the example order sheet
+            </button>
+            <span className="text-slate-400">— 42 lines, including the SH-B and SH-C square-bottom products.</span>
+            <a href={EXAMPLE_URL} download className="inline-flex items-center gap-1 text-slate-500 hover:text-slate-800">
+              <Download className="w-3.5 h-3.5" />download it
+            </a>
+          </div>
         </div>
 
         {(error || warnings.length > 0) && (

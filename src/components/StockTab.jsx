@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
-import { Search, Package, AlertTriangle, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { Search, Package, AlertTriangle, RefreshCw, Wifi, WifiOff, Upload } from 'lucide-react';
+import { parseMaterialsSheet } from '../lib/parseMaterials.js';
 import { Card, Button, Empty, TableWrap, Th, Td, Notice, fmt } from './ui.jsx';
 
 const TYPES = ['ALL', 'FINISHED', 'PAPER', 'HANDLE', 'PATCH', 'CARTON', 'INK', 'GLUE', 'OTHER'];
@@ -16,7 +17,7 @@ const TYPE_STYLE = {
 };
 
 /** Where the numbers came from, and a way to pull them again. */
-function LiveBar({ live, onRefresh }) {
+function LiveBar({ live, onRefresh, onUpload }) {
   const time = live.fetchedAt
     ? new Date(live.fetchedAt).toLocaleString('en-GB', { weekday: 'short', hour: '2-digit', minute: '2-digit' })
     : null;
@@ -30,10 +31,11 @@ function LiveBar({ live, onRefresh }) {
       {live.status === 'live' ? <Wifi className="w-4 h-4" /> : <WifiOff className="w-4 h-4" />}
       <div className="flex-1 min-w-[16rem]">
         {live.status === 'live' && <><strong>Live from QuickBase Plant 9000</strong> · read {time}. SAP updates QuickBase around 11:00 and again between 22:00 and 23:00.</>}
-        {live.status === 'not-configured' && <>Live QuickBase stock is not connected yet, so this shows the last uploaded export. Once the QuickBase token is added to the site, stock loads here automatically.</>}
+        {live.status === 'not-configured' && <>Live QuickBase stock is not connected here, so this shows the last stock loaded. You can upload a Plant 9000 export instead.</>}
         {live.status === 'error' && <><strong>Could not read live stock.</strong> {live.error} Showing the last stock loaded.</>}
         {live.status === 'idle' && <>Checking QuickBase for live stock…</>}
       </div>
+      {live.status !== 'live' && live.status !== 'idle' && onUpload && <UploadFallback onUpload={onUpload} />}
       <Button variant="ghost" onClick={onRefresh} disabled={live.loading}>
         <RefreshCw className={`w-4 h-4 ${live.loading ? 'animate-spin' : ''}`} />{live.loading ? 'Checking…' : 'Refresh'}
       </Button>
@@ -41,10 +43,34 @@ function LiveBar({ live, onRefresh }) {
   );
 }
 
-export default function StockTab({ materials, sourceName, live = { status: 'idle' }, onRefresh }) {
+/** Only offered when QuickBase cannot be read: load a Plant 9000 export by hand. */
+function UploadFallback({ onUpload }) {
+  const input = useRef(null);
+  const [error, setError] = useState(null);
+  const take = async (file) => {
+    if (!file) return;
+    setError(null);
+    try {
+      const { materials } = await parseMaterialsSheet(file);
+      onUpload(materials, file.name);
+    } catch (e) { setError(e.message); }
+  };
+  return (
+    <>
+      <input ref={input} type="file" accept=".csv,.xlsx,.xls" className="hidden"
+             onChange={(e) => { take(e.target.files?.[0]); e.target.value = ''; }} />
+      <Button variant="ghost" onClick={() => input.current?.click()} title={error || 'Load a Materials Plant 9000 export instead'}>
+        <Upload className="w-4 h-4" />Upload export
+      </Button>
+      {error && <span className="w-full text-xs text-red-700">{error}</span>}
+    </>
+  );
+}
+
+export default function StockTab({ materials, sourceName, live = { status: 'idle' }, onRefresh, onUpload }) {
   return (
     <div className="space-y-5">
-      <LiveBar live={live} onRefresh={onRefresh} />
+      <LiveBar live={live} onRefresh={onRefresh} onUpload={onUpload} />
       <StockTable materials={materials} sourceName={sourceName} />
     </div>
   );
@@ -66,7 +92,7 @@ function StockTable({ materials, sourceName }) {
 
   if (!materials.length) {
     return <Card><Empty icon={Package} title="No stock loaded">
-      Upload the QuickBase Materials Plant 9000 export on the Import tab. Free stock (FStk) from that file is what shows here.
+      Stock is read live from QuickBase Materials Plant 9000. Press Refresh above, or upload an export if QuickBase cannot be reached. Free stock (FStk) is what shows here.
     </Empty></Card>;
   }
 
@@ -86,7 +112,7 @@ function StockTable({ materials, sourceName }) {
       )}
 
       <Card
-        title={`Stock — ${fmt(materials.length)} materials`}
+        title={`Live Stock Data — ${fmt(materials.length)} materials`}
         subtitle={`${sourceName ? `From ${sourceName}. ` : ''}Free stock excludes blocked and committed quantities${blocked.length ? ` — ${blocked.length} lines have stock that is not free` : ''}.`}
         right={
           <div className="relative">
